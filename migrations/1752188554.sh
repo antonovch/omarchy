@@ -1,5 +1,7 @@
-echo "Update chromium.desktop to ensure we are always using wayland"
-
-xdg-settings set default-web-browser chromium.desktop
-xdg-mime default chromium.desktop x-scheme-handler/http
-xdg-mime default chromium.desktop x-scheme-handler/https
+echo "Update firefox.desktop to ensure we are always using wayland"
+if [[ ! -f ~/.local/share/applications/firefox.desktop ]]; then
+  cp ~/.local/share/omarchy/applications/firefox.desktop ~/.local/share/applications/
+  xdg-settings set default-web-browser firefox.desktop
+  xdg-mime default firefox.desktop x-scheme-handler/http
+  xdg-mime default firefox.desktop x-scheme-handler/https
+fi

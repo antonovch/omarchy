@@ -6,7 +6,7 @@ DESKTOP_DIR="$HOME/.local/share/applications/"
 if [ "$#" -eq 0 ]; then
   # Find all web apps
   while IFS= read -r -d '' file; do
-    if grep -q '^Exec=.*omarchy-launch-webapp.*' "$file"; then
+    if grep -qE '^Exec=.*(omarchy-launch-webapp|firefoxpwa).*' "$file"; then
       WEB_APPS+=("$(basename "${file%.desktop}")")
     fi
   done < <(find "$DESKTOP_DIR" -name '*.desktop' -print0)
@@ -35,7 +35,16 @@ if [[ ${#APP_NAMES[@]} -eq 0 ]]; then
 fi
 
 for APP_NAME in "${APP_NAMES[@]}"; do
-  rm -f "$DESKTOP_DIR/$APP_NAME.desktop"
+  DESKTOP_FILE="$DESKTOP_DIR/$APP_NAME.desktop"
+  if [ -f "$DESKTOP_FILE" ] && grep -qE '^Exec=.*firefoxpwa site launch.*' "$DESKTOP_FILE"; then
+    # Extract the app ID from the Exec line
+    APP_ID=$(grep '^Exec=' "$DESKTOP_FILE" | sed -n 's/.*firefoxpwa site launch \([A-Z0-9]*\).*/\1/p')
+    if [ -n "$APP_ID" ]; then
+      # Uninstall the firefoxpwa app silently
+      echo "y" | /usr/bin/firefoxpwa site uninstall "$APP_ID" >/dev/null 2>&1
+    fi
+  fi
+  rm -f "$DESKTOP_FILE"
   rm -f "$ICON_DIR/$APP_NAME.png"
   echo "Removed $APP_NAME"
 done

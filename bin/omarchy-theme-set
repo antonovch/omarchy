@@ -55,6 +55,20 @@ if command -v chromium &>/dev/null; then
   fi
 fi
 
+# Change Firefox theme
+if command -v firefox &>/dev/null; then
+  if [[ -f ~/.config/omarchy/current/theme/firefox.theme ]]; then
+    omarchy-theme-firefox-set "$(<~/.config/omarchy/current/theme/firefox.theme)" 
+  fi
+fi
+
+# Change VS Code theme
+if command -v code &>/dev/null; then
+  if [[ -f ~/.config/omarchy/current/theme/vscode.theme ]]; then
+    cat ~/.config/omarchy/current/theme/vscode.theme | xargs omarchy-theme-vscode-set 
+  fi
+fi
+
 # Trigger alacritty config reload
 touch "$HOME/.config/alacritty/alacritty.toml"
 

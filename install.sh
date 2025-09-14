@@ -22,6 +22,7 @@ source $OMARCHY_INSTALL/packaging/fonts.sh
 source $OMARCHY_INSTALL/packaging/lazyvim.sh
 source $OMARCHY_INSTALL/packaging/webapps.sh
 source $OMARCHY_INSTALL/packaging/tuis.sh
+source $OMARCHY_INSTALL/packaging/zsh.sh
 
 # Configuration
 source $OMARCHY_INSTALL/config/config.sh
@@ -40,6 +41,7 @@ source $OMARCHY_INSTALL/config/docker.sh
 source $OMARCHY_INSTALL/config/mimetypes.sh
 source $OMARCHY_INSTALL/config/localdb.sh
 source $OMARCHY_INSTALL/config/sudoless-asdcontrol.sh
+source $OMARCHY_INSTALL/config/firefox.sh
 source $OMARCHY_INSTALL/config/hardware/network.sh
 source $OMARCHY_INSTALL/config/hardware/set-wireless-regdom.sh
 source $OMARCHY_INSTALL/config/hardware/fix-fkeys.sh

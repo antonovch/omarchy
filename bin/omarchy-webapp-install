@@ -1,45 +1,75 @@
 #!/bin/bash
 
-if [ "$#" -ne 3 ]; then
+get_manifest_url() {
+  local url="$1"
+  local manifest_url=""
+
+  # Check if the URL already ends with a manifest file name
+  if [[ "$url" == *manifest* ]] || [[ "$url" == *pwa.json ]]; then
+    # If it's explicitly a manifest URL, trust it without validation
+    manifest_url="$url"
+  else
+    # Extract domain from URL for manifest checking
+    local domain=$(echo "$url" | sed 's|^\(https\?://[^/]*\).*|\1|')
+    
+    # Try appending common manifest file names to the domain
+    for suffix in "/manifest.json" "/manifest.webmanifest" "/site.webmanifest" "/app.webmanifest" "/appmanifest.webmanifest" "/web.manifest" "/pwa.json"; do
+      local test_url="${domain%/}$suffix" # Remove trailing slash before adding suffix
+      # Try to fetch the content and check if it's JSON
+      local response=$(curl -s "$test_url" 2>/dev/null)
+      if [ -n "$response" ] && echo "$response" | jq . >/dev/null 2>&1; then
+        manifest_url="$test_url"
+        break
+      fi
+    done
+  fi
+
+  if [ -z "$manifest_url" ]; then
+    local domain=$(echo "$url" | sed 's|^\(https\?://[^/]*\).*|\1|')
+    echo "Error: Could not find a valid manifest for $domain" >&2
+    exit 1
+  fi
+  echo "$manifest_url"
+}
+
+if [ "$#" -eq 0 ]; then
   echo -e "\e[32mLet's create a new web app you can start with the app launcher.\n\e[0m"
   APP_NAME=$(gum input --prompt "Name> " --placeholder "My favorite web app")
   APP_URL=$(gum input --prompt "URL> " --placeholder "https://example.com")
-  ICON_URL=$(gum input --prompt "Icon URL> " --placeholder "See https://dashboardicons.com (must use PNG!)")
-else
+  ICON_URL=$(gum input --prompt "Icon URL (optional)> " --placeholder "See https://dashboardicons.com (must use PNG!)")
+elif [ "$#" -eq 2 ] || [ "$#" -eq 3 ]; then
   APP_NAME="$1"
   APP_URL="$2"
   ICON_URL="$3"
-fi
-
-if [[ -z "$APP_NAME" || -z "$APP_URL" || -z "$ICON_URL" ]]; then
-  echo "You must set app name, app URL, and icon URL!"
+else
+  echo "Usage: $(basename "$0") [\"App Name\" \"Manifest URL\" [\"Icon URL\"]]"
   exit 1
 fi
 
-ICON_DIR="$HOME/.local/share/applications/icons"
-DESKTOP_FILE="$HOME/.local/share/applications/$APP_NAME.desktop"
-ICON_PATH="$ICON_DIR/$APP_NAME.png"
-
-mkdir -p "$ICON_DIR"
-
-if ! curl -sL -o "$ICON_PATH" "$ICON_URL"; then
-  echo "Error: Failed to download icon."
-  return 1
+if [[ -z "$APP_NAME" || -z "$APP_URL" ]]; then
+  echo "You must set app name and app URL!"
+  exit 1
 fi
 
-cat >"$DESKTOP_FILE" <<EOF
-[Desktop Entry]
-Version=1.0
-Name=$APP_NAME
-Comment=$APP_NAME
-Exec=omarchy-launch-webapp $APP_URL
-Terminal=false
-Type=Application
-Icon=$ICON_PATH
-StartupNotify=true
-EOF
+mkdir -p ~/.local/share/mime/packages
 
-chmod +x "$DESKTOP_FILE"
+ORIGINAL_URL="$APP_URL"
+MANIFEST_URL=$(get_manifest_url "$APP_URL")
+PROFILE_ID=$(firefoxpwa profile create --name "$APP_NAME" | awk -F'Profile created:' '/Profile created:/ {print $2}' | xargs)
+
+CMD="firefoxpwa site install --name \"$APP_NAME\" --profile \"$PROFILE_ID\""
+if [ -n "$ICON_URL" ]; then
+  CMD="$CMD --icon-url \"$ICON_URL\""
+fi
+# Use original URL as start URL if it's different from manifest URL
+if [[ "$ORIGINAL_URL" != *manifest* ]]; then
+  CMD="$CMD --start-url \"$ORIGINAL_URL\""
+fi
+CMD="$CMD \"$MANIFEST_URL\""
+
+APP_ID=$(eval $CMD | awk -F'Web app installed:' '/Web app installed:/ {print $2}' | xargs)
+mv ~/.local/share/applications/FFPWA-$APP_ID.desktop ~/.local/share/applications/$APP_NAME.desktop
+chmod +x ~/.local/share/applications/$APP_NAME.desktop
 
 if [ "$#" -ne 3 ]; then
   echo -e "You can now find $APP_NAME using the app launcher (SUPER + SPACE)\n"

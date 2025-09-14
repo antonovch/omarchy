@@ -1,10 +1,10 @@
 #!/bin/bash
 
+sudo pacman -Syy
+
 sudo pacman -S --noconfirm --needed \
-  1password-beta \
-  1password-cli \
-  asdcontrol-git \
   alacritty \
+  asdcontrol-git \
   avahi \
   bash-completion \
   bat \
@@ -13,10 +13,13 @@ sudo pacman -S --noconfirm --needed \
   btop \
   cargo \
   clang \
+  clipmenu \
+  cmake \
   cups \
   cups-browsed \
   cups-filters \
   cups-pdf \
+  dmenu \
   docker \
   docker-buildx \
   docker-compose \
@@ -30,12 +33,14 @@ sudo pacman -S --noconfirm --needed \
   fd \
   ffmpegthumbnailer \
   fontconfig \
+  firefox \
+  firefoxpwa \
   fzf \
   gcc14 \
+  gdb \
   github-cli \
-  gnome-calculator \
-  gnome-keyring \
   gnome-themes-extra \
+  gnupg \
   gum \
   gvfs-mtp \
   gvfs-smb \
@@ -58,13 +63,11 @@ sudo pacman -S --noconfirm --needed \
   lazygit \
   less \
   libqalculate \
-  libreoffice \
   llvm \
   localsend \
   luarocks \
   mako \
   man \
-  mariadb-libs \
   mise \
   mpv \
   nautilus \
@@ -74,37 +77,40 @@ sudo pacman -S --noconfirm --needed \
   noto-fonts-extra \
   nss-mdns \
   nvim \
-  obs-studio \
-  obsidian \
-  omarchy-chromium \
   pamixer \
+  pinentry-rofi \
   pinta \
   playerctl \
   plocate \
   plymouth \
   polkit-gnome \
-  postgresql-libs \
   power-profiles-daemon \
   python-gobject \
+  python-lxml \
+  python-pip \
   python-poetry-core \
+  python-pykeepass \
+  python-pynput \
   python-terminaltexteffects \
   qt5-wayland \
   ripgrep \
   satty \
   signal-desktop \
   slurp \
+  socat \
+  speedtest-cli \
   spotify \
   starship \
   sushi \
   swaybg \
   swayosd \
   system-config-printer \
+  thunderbird \
   tldr \
   tree-sitter-cli \
   ttf-cascadia-mono-nerd \
   ttf-ia-writer \
   ttf-jetbrains-mono-nerd \
-  typora \
   tzupdate \
   ufw \
   ufw-docker \
@@ -112,6 +118,7 @@ sudo pacman -S --noconfirm --needed \
   uwsm \
   walker-bin \
   waybar \
+  websocat \
   wf-recorder \
   whois \
   wireless-regdb \
@@ -121,10 +128,15 @@ sudo pacman -S --noconfirm --needed \
   wl-clipboard \
   wl-screenrec \
   woff2-font-awesome \
+  wtype \
   xdg-desktop-portal-gtk \
   xdg-desktop-portal-hyprland \
   xmlstarlet \
-  xournalpp \
   yaru-icon-theme \
   yay \
+  ydotool \
   zoxide
+
+yay -S --noconfirm --needed \
+  hyprmon-bin \
+  keepmenu

@@ -33,3 +33,12 @@ alias g='git'
 alias gcm='git commit -m'
 alias gcam='git commit -a -m'
 alias gcad='git commit -a --amend'
+
+# Misc
+alias h=' history 1 | grep'
+alias docker-clean='docker system prune -a --volumes && docker run --privileged --pid=host docker/desktop-reclaim-space'
+alias docker-ssh='docker exec -it $(docker ps -q -l) bash'
+alias docker-rm='docker stop $(docker ps -q -l) | xargs docker rm'
+alias speedtest='speedtest --secure'
+alias vim=/usr/bin/nvim
+alias vi=/usr/bin/nvim

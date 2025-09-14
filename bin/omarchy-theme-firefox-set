@@ -1,0 +1,49 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+if [[ $# -lt 1 ]]; then
+  echo "Usage: $0 <light|dark|toggle|theme-id>" >&2
+  exit 1
+fi
+
+CMD="$1"
+SOCK="${XDG_RUNTIME_DIR:-$HOME/.local/run}/firefox-theme-switcher.sock"
+STATE_FILE="${XDG_CONFIG_HOME:-$HOME/.config}/firefox-theme-switcher/state.json"
+
+mkdir -p "$(dirname "$STATE_FILE")"
+
+# Prepare JSON payload
+case "$CMD" in
+  dark|light|toggle)
+    MSG=$(jq -nc --arg cmd "$CMD" '{"cmd":$cmd}')
+    ;;
+  *)
+    MSG=$(jq -nc --arg id "$CMD" '{"cmd":"applyThemeId","themeId":$id}')
+    ;;
+esac
+
+# Try live socket first
+if [[ -S "$SOCK" ]]; then
+  if command -v socat >/dev/null 2>&1; then
+    printf '%s\n' "$MSG" | socat - UNIX-CONNECT:"$SOCK"
+    exit 0
+  elif command -v ncat >/dev/null 2>&1; then
+    printf '%s\n' "$MSG" | ncat -U "$SOCK"
+    exit 0
+  else
+    echo "Install socat or ncat to use this script." >&2
+    exit 1
+  fi
+fi
+
+# If socket not available, write persistent state file
+echo "Firefox is not running; saving desired theme for next startup: $STATE_FILE" >&2
+
+# Wrap MSG in proper JSON
+if [[ "$CMD" == "dark" || "$CMD" == "light" || "$CMD" == "toggle" ]]; then
+  jq -nc --arg cmd "$CMD" '{"cmd":$cmd}' >"$STATE_FILE"
+else
+  echo "$MSG" >"$STATE_FILE"
+fi
+
+echo "Saved theme state."
