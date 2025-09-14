@@ -1,7 +1,3 @@
-# All the default Omarchy aliases and functions
-# (don't mess with these directly, just overwrite them here!)
-source ~/.local/share/omarchy/default/zsh/rc
-
 # If you come from bash you might have to change your $PATH.
 # export PATH=$HOME/bin:/usr/local/bin:$PATH
 
@@ -77,6 +73,10 @@ ZSH_THEME="half-life"
 plugins=(z zsh-autosuggestions git kubectl docker helm golang brew aws brew)
 
 source $ZSH/oh-my-zsh.sh
+
+# All the default Omarchy aliases and functions
+# (don't mess with these directly, just overwrite them here!)
+source ~/.local/share/omarchy/default/zsh/rc
 
 PROMPT="${purple}%n%{$reset_color%}@%F{red}%m%{$reset_color%} in ${limegreen}%~%{$reset_color%}\$(ruby_prompt_info)\$vcs_info_msg_0_${orange}
 λ%{$reset_color%} "
