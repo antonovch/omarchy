@@ -103,6 +103,7 @@ pref("general.config.obscure_value", 0);
 EOF
 fi
 
+mkdir -p ~/.local/bin/
 cp ~/.local/share/omarchy/install/config/firefox-theme-switcher/firefox_theme_host.py ~/.local/bin/firefox_theme_host.py
 chmod +x ~/.local/bin/firefox_theme_host.py
 
