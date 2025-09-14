@@ -112,6 +112,7 @@ sudo pacman -S --noconfirm --needed \
   ufw-docker \
   unzip \
   uwsm \
+  visual-studio-code-bin \
   walker-bin \
   waybar \
   websocat \
