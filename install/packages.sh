@@ -1,7 +1,5 @@
 #!/bin/bash
 
-sudo pacman -Syy
-
 sudo pacman -S --noconfirm --needed \
   alacritty \
   asdcontrol-git \
@@ -78,7 +76,6 @@ sudo pacman -S --noconfirm --needed \
   nss-mdns \
   nvim \
   pamixer \
-  pinentry-rofi \
   pinta \
   playerctl \
   plocate \
@@ -90,7 +87,6 @@ sudo pacman -S --noconfirm --needed \
   python-pip \
   python-poetry-core \
   python-pykeepass \
-  python-pynput \
   python-terminaltexteffects \
   qt5-wayland \
   ripgrep \
@@ -139,4 +135,6 @@ sudo pacman -S --noconfirm --needed \
 
 yay -S --noconfirm --needed \
   hyprmon-bin \
-  keepmenu
+  keepmenu \
+  pinentry-rofi \
+  python-pynput
