@@ -18,5 +18,5 @@ fi
 
 # Set zsh as default shell
 if [ "$SHELL" != "/bin/zsh" ]; then
-  chsh -s /bin/zsh
+  sudo chsh -s /bin/zsh $USER
 fi
