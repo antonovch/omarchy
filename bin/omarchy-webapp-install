@@ -68,6 +68,12 @@ fi
 CMD="$CMD \"$MANIFEST_URL\""
 
 APP_ID=$(eval $CMD | awk -F'Web app installed:' '/Web app installed:/ {print $2}' | xargs)
+
+if [[ -z $APP_ID ]]; then
+  echo "Webapp installation failed."
+  exit 1
+fi
+
 mv ~/.local/share/applications/FFPWA-$APP_ID.desktop ~/.local/share/applications/$APP_NAME.desktop
 chmod +x ~/.local/share/applications/$APP_NAME.desktop
 
