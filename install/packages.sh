@@ -77,6 +77,9 @@ sudo pacman -S --noconfirm --needed \
   nvim \
   pamixer \
   pinta \
+  pipewire \
+  pipewire-pulse \
+  pipewire-alsa \
   playerctl \
   plocate \
   plymouth \
