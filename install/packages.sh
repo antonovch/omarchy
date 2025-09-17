@@ -18,6 +18,7 @@ sudo pacman -S --noconfirm --needed \
   cups-filters \
   cups-pdf \
   dmenu \
+  dnsmasq \
   docker \
   docker-buildx \
   docker-compose \
