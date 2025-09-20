@@ -37,10 +37,16 @@ if [ "$#" -eq 0 ]; then
   APP_NAME=$(gum input --prompt "Name> " --placeholder "My favorite web app")
   APP_URL=$(gum input --prompt "URL> " --placeholder "https://example.com")
   ICON_URL=$(gum input --prompt "Icon URL (optional)> " --placeholder "See https://dashboardicons.com (must use PNG!)")
+  CUSTOM_CMD=""
+  MIME_TYPES=""
+  INTERACTIVE_MODE=true
 elif [ "$#" -eq 2 ] || [ "$#" -eq 3 ]; then
   APP_NAME="$1"
   APP_URL="$2"
   ICON_URL="$3"
+  CUSTOM_CMD="$4" # Optional custom exec command
+  MIME_TYPES="$5"  # Optional mime types
+  INTERACTIVE_MODE=false
 else
   echo "Usage: $(basename "$0") [\"App Name\" \"Manifest URL\" [\"Icon URL\"]]"
   exit 1
@@ -57,7 +63,13 @@ ORIGINAL_URL="$APP_URL"
 MANIFEST_URL=$(get_manifest_url "$APP_URL")
 PROFILE_ID=$(firefoxpwa profile create --name "$APP_NAME" | awk -F'Profile created:' '/Profile created:/ {print $2}' | xargs)
 
-CMD="firefoxpwa site install --name \"$APP_NAME\" --profile \"$PROFILE_ID\""
+# Use custom exec if provided, otherwise default behavior
+if [[ -n $CUSTOM_CMD ]]; then
+  CMD="$CUSTOM_CMD"
+else
+  CMD="firefoxpwa site install --name \"$APP_NAME\" --profile \"$PROFILE_ID\""
+fi
+
 if [ -n "$ICON_URL" ]; then
   CMD="$CMD --icon-url \"$ICON_URL\""
 fi
@@ -74,8 +86,15 @@ if [[ -z $APP_ID ]]; then
   exit 1
 fi
 
-mv ~/.local/share/applications/FFPWA-$APP_ID.desktop ~/.local/share/applications/$APP_NAME.desktop
-chmod +x ~/.local/share/applications/$APP_NAME.desktop
+DESKTOP_FILE="$HOME/.local/share/applications/$APP_NAME.desktop"
+mv ~/.local/share/applications/FFPWA-$APP_ID.desktop "$DESKTOP_FILE"
+
+# Add mime types if provided
+if [[ -n $MIME_TYPES ]]; then
+  echo "MimeType=$MIME_TYPES" >>"$DESKTOP_FILE"
+fi
+
+chmod +x "$DESKTOP_FILE"
 
 if [ "$#" -ne 3 ]; then
   echo -e "You can now find $APP_NAME using the app launcher (SUPER + SPACE)\n"
