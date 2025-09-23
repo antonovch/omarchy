@@ -1,7 +1,24 @@
 #!/bin/bash
 
-# Lock the screen
-pidof hyprlock || hyprlock &
+if pidof hyprlock; then
+    exit 0
+fi
 
-# Avoid running screensaver when locked
+declare -A layout_index=(
+    ["English (US)"]=0
+    ["Ukrainian"]=1
+)
+
+prev_layout="$(hyprctl devices -j | jq -r '.keyboards[] | select(.name == "at-translated-set-2-keyboard") | .active_keymap' 2>/dev/null)"
+prev_index="${layout_index[$prev_layout]}"
+
+# force US layout (index 0)
+hyprctl switchxkblayout at-translated-set-2-keyboard 0
+
 pkill -f "$TERMINAL --class Screensaver"
+
+hyprlock
+
+if [ -n "$prev_index" ]; then
+    hyprctl switchxkblayout at-translated-set-2-keyboard "$prev_index"
+fi

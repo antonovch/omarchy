@@ -2,3 +2,4 @@ hyprmon-bin
 keepmenu
 pinentry-rofi
 python-pynput
+hyprland-per-window-layout
