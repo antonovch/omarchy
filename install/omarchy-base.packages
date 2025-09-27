@@ -1,7 +1,6 @@
 # Omarchy core package list installed via install/packages.sh
 # This file is also used by the ISO builder when determining needs
 
-alacritty
 asdcontrol-git
 avahi
 bash-completion
@@ -37,6 +36,7 @@ firefoxpwa
 fzf
 gcc14
 gdb
+ghostty
 github-cli
 gnome-calculator
 gnome-keyring
