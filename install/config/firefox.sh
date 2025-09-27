@@ -36,7 +36,7 @@ if [[ ! -f /usr/lib/firefox/distribution/policies.json ]]; then
     "ExtensionSettings": {
       "firefoxpwa@filips.si": {
         "installation_mode": "force_installed",
-        "install_url": "https://addons.mozilla.org/firefox/downloads/file/4537285/pwas_for_firefox-2.15.0.xpi"
+        "install_url": "https://addons.mozilla.org/firefox/downloads/file/4537285/pwas_for_firefox-2.16.0.xpi"
       },
       "{f5525f34-4102-4f6e-8478-3cf23cfeff7a}": {
         "installation_mode": "force_installed",
@@ -93,6 +93,7 @@ defaultPref("browser.urlbar.placeholderName", "DuckDuckGo");
 defaultPref("browser.urlbar.placeholderName.private", "DuckDuckGo");
 defaultPref("browser.tabs.insertAfterCurrent", true);
 defaultPref("browser.startup.page", 3); // 3 = restore previous session
+defaultPref("services.sync.prefs.sync.extensions.activeThemeID", false);
 EOF
 fi
 
