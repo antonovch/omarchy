@@ -7,11 +7,70 @@ iso2sd() {
   if [ $# -ne 2 ]; then
     echo "Usage: iso2sd <input_file> <output_device>"
     echo "Example: iso2sd ~/Downloads/ubuntu-25.04-desktop-amd64.iso /dev/sda"
-    echo -e "\nAvailable SD cards:"
-    lsblk -d -o NAME | grep -E '^sd[a-z]' | awk '{print "/dev/"$1}'
+    echo -e "\nAvailable storage devices:"
+    lsblk -d -o NAME,SIZE | grep -E '^(sd|mm)[a-z]' | awk '{print "/dev/"$1" ("$2")"}'
   else
-    sudo dd bs=4M status=progress oflag=sync if="$1" of="$2"
-    sudo eject $2
+    sudo sh -c "dd bs=4M status=progress oflag=sync if='$1' of='$2' && eject '$2'"
+  fi
+}
+
+# Create iso file from sd card
+sd2iso() {
+  if [ $# -ne 2 ]; then
+    echo "Usage: sd2iso <input_device> <output_file>"
+    echo "Example: sd2iso /dev/sda ~/backup-sdcard.iso"
+    echo -e "\nAvailable storage devices:"
+    lsblk -d -o NAME,SIZE | grep -E '^(sd|mm)[a-z]' | awk '{print "/dev/"$1" ("$2")"}'
+  else
+    # Get all partitions on the device
+    partitions=$(sudo fdisk -l "$1" | grep "^$1" | awk '{print $1, $2, $3}')
+
+    if [ -n "$partitions" ]; then
+      max_sector=0
+
+      # Process each partition
+      while IFS= read -r line; do
+        part_device=$(echo "$line" | awk '{print $1}')
+        part_start=$(echo "$line" | awk '{print $2}')
+        part_end=$(echo "$line" | awk '{print $3}')
+
+        # Check if partition is mounted, if not mount it temporarily
+        mount_point=$(lsblk -n -o MOUNTPOINT "$part_device" 2>/dev/null | head -1)
+        temp_mount=false
+
+        if [ -z "$mount_point" ]; then
+          temp_mount=true
+          mount_point="/tmp/sd2iso_temp_$$"
+          mkdir -p "$mount_point"
+          if sudo mount -r "$part_device" "$mount_point" 2>/dev/null; then
+            used_kb=$(df "$mount_point" | tail -1 | awk '{print $3}')
+            used_sectors=$((used_kb * 2))
+            last_used_sector=$((part_start + used_sectors))
+
+            sudo umount "$mount_point"
+          else
+            last_used_sector=$part_end
+          fi
+          rmdir "$mount_point" 2>/dev/null
+        else
+          used_kb=$(df "$mount_point" | tail -1 | awk '{print $3}')
+          used_sectors=$((used_kb * 2))
+          last_used_sector=$((part_start + used_sectors))
+        fi
+
+        if [ $last_used_sector -gt $max_sector ]; then
+          max_sector=$last_used_sector
+        fi
+      done <<< "$partitions"
+
+      # Add 100MB safety margin (204800 sectors)
+      safe_sector=$((max_sector + 204800))
+      count_blocks=$((safe_sector / 8))
+
+      sudo dd bs=4096 count=$count_blocks status=progress if="$1" of="$2"
+    else
+      sudo dd bs=4096 status=progress if="$1" of="$2"
+    fi
   fi
 }
 
@@ -24,7 +83,8 @@ format-drive() {
     lsblk -d -o NAME -n | awk '{print "/dev/"$1}'
   else
     echo "WARNING: This will completely erase all data on $1 and label it '$2'."
-    read -rp "Are you sure you want to continue? (y/N): " confirm
+    echo -n "Are you sure you want to continue? (y/N): "
+    read -r confirm
     if [[ "$confirm" =~ ^[Yy]$ ]]; then
       sudo wipefs -a "$1"
       sudo dd if=/dev/zero of="$1" bs=1M count=100 status=progress
