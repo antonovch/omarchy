@@ -118,7 +118,7 @@ ufw
 ufw-docker
 unzip
 uwsm
-visual-studio-code-bin
+code
 walker-bin
 waybar
 websocat
