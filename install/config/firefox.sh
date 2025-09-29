@@ -54,7 +54,7 @@ if [[ ! -f /usr/lib/firefox/distribution/policies.json ]]; then
         "installation_mode": "force_installed",
         "install_url": "https://addons.mozilla.org/firefox/downloads/file/4503497/gruvbox_material_soft_theme-1.8.xpi"
       },
-      "{21ab01a8-2464-4824-bccb-6db15659347e}": {
+      "{26690e10-862d-456f-8bf2-50117a3cb206}": {
         "installation_mode": "force_installed",
         "install_url": "https://addons.mozilla.org/firefox/downloads/file/2589656/japan_style_kanagawa_gr_232767-2.0.xpi"
       },
