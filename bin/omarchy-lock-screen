@@ -15,7 +15,7 @@ prev_index="${layout_index[$prev_layout]}"
 # force US layout (index 0)
 hyprctl switchxkblayout at-translated-set-2-keyboard 0
 
-pkill -f "$TERMINAL --class Screensaver"
+pkill -f "alacritty --class Screensaver"
 
 hyprlock
 
