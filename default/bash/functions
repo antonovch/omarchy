@@ -21,56 +21,60 @@ sd2iso() {
     echo "Example: sd2iso /dev/sda ~/backup-sdcard.iso"
     echo -e "\nAvailable storage devices:"
     lsblk -d -o NAME,SIZE | grep -E '^(sd|mm)[a-z]' | awk '{print "/dev/"$1" ("$2")"}'
-  else
-    # Get all partitions on the device
-    partitions=$(sudo fdisk -l "$1" | grep "^$1" | awk '{print $1, $2, $3}')
+    exit 0
+  fi
+  last_partition=$(sudo fdisk -l "$1" | grep "^$1" | tail -1)
 
-    if [ -n "$partitions" ]; then
-      max_sector=0
+  if [ -n "$last_partition" ]; then
+    last_part_device=$(echo "$last_partition" | awk '{print $1}')
+    last_part_start=$(echo "$last_partition" | awk '{print $2}')
 
-      # Process each partition
-      while IFS= read -r line; do
-        part_device=$(echo "$line" | awk '{print $1}')
-        part_start=$(echo "$line" | awk '{print $2}')
-        part_end=$(echo "$line" | awk '{print $3}')
+    # Check if last partition is ext2/3/4
+    fs_type=$(sudo blkid -o value -s TYPE "$last_part_device" 2>/dev/null)
 
-        # Check if partition is mounted, if not mount it temporarily
-        mount_point=$(lsblk -n -o MOUNTPOINT "$part_device" 2>/dev/null | head -1)
-        temp_mount=false
+    if [[ "$fs_type" =~ ^ext[234]$ ]]; then
+      # Unmount if mounted
+      if mountpoint=$(findmnt -n -o TARGET "$last_part_device" 2>/dev/null); then
+        sudo umount "$last_part_device"
+        was_mounted=true
+      fi
 
-        if [ -z "$mount_point" ]; then
-          temp_mount=true
-          mount_point="/tmp/sd2iso_temp_$$"
-          mkdir -p "$mount_point"
-          if sudo mount -r "$part_device" "$mount_point" 2>/dev/null; then
-            used_kb=$(df "$mount_point" | tail -1 | awk '{print $3}')
-            used_sectors=$((used_kb * 2))
-            last_used_sector=$((part_start + used_sectors))
+      # Check and repair filesystem
+      sudo e2fsck -fy "$last_part_device"
 
-            sudo umount "$mount_point"
-          else
-            last_used_sector=$part_end
-          fi
-          rmdir "$mount_point" 2>/dev/null
-        else
-          used_kb=$(df "$mount_point" | tail -1 | awk '{print $3}')
-          used_sectors=$((used_kb * 2))
-          last_used_sector=$((part_start + used_sectors))
-        fi
+      # Shrink filesystem to minimum
+      sudo resize2fs -M "$last_part_device"
 
-        if [ $last_used_sector -gt $max_sector ]; then
-          max_sector=$last_used_sector
-        fi
-      done <<< "$partitions"
+      # Get actual filesystem size in 4K blocks
+      fs_blocks=$(sudo tune2fs -l "$last_part_device" | grep "^Block count:" | awk '{print $3}')
+      fs_block_size=$(sudo tune2fs -l "$last_part_device" | grep "^Block size:" | awk '{print $3}')
 
-      # Add 100MB safety margin (204800 sectors)
-      safe_sector=$((max_sector + 204800))
+      # Calculate size in 512-byte sectors with 500MB buffer
+      fs_size_sectors=$(( (fs_blocks * fs_block_size / 512) + 1024000 ))
+      new_part_end=$(( last_part_start + fs_size_sectors ))
+
+      # Shrink partition
+      sudo parted -s "$1" resizepart $(echo "$last_part_device" | grep -o '[0-9]*$') ${new_part_end}s
+
+      # Remount if it was mounted
+      if [ "$was_mounted" = true ]; then
+        sudo mount "$last_part_device" "$mountpoint"
+      fi
+
+      # Copy up to new end with 100MB margin
+      safe_sector=$((new_part_end + 204800))
       count_blocks=$((safe_sector / 8))
-
-      sudo dd bs=4096 count=$count_blocks status=progress if="$1" of="$2"
+      sudo sh -c "dd bs=4096 count=$count_blocks status=progress if='$1' of='$2' && chown $(id -u):$(id -g) '$2'"
     else
-      sudo dd bs=4096 status=progress if="$1" of="$2"
+      # Non-ext filesystem, use original end
+      last_partition_end=$(echo "$last_partition" | awk '{print $3}')
+      safe_sector=$((last_partition_end + 204800))
+      count_blocks=$((safe_sector / 8))
+      sudo sh -c "dd bs=4096 count=$count_blocks status=progress if='$1' of='$2' && chown $(id -u):$(id -g) '$2'"
     fi
+  else
+    # No partitions found, copy entire device
+    sudo sh -c "dd bs=4096 status=progress if='$1' of='$2' && chown $(id -u):$(id -g) '$2'"
   fi
 }
 
