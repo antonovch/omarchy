@@ -24,19 +24,6 @@ docker
 docker-buildx
 docker-compose
 dust
-elephant
-elephant-bluetooth
-elephant-calc
-elephant-clipboard
-elephant-desktopapplications
-elephant-files
-elephant-menus
-elephant-providerlist
-elephant-runner
-elephant-symbols
-elephant-todo
-elephant-unicode
-elephant-websearch
 evince
 expac
 eza
@@ -102,6 +89,7 @@ nvim
 omarchy-lazyvim
 obs-studio
 omarchy-nvim
+omarchy-walker
 pamixer
 pinta
 playerctl
@@ -141,7 +129,6 @@ ufw-docker
 unzip
 uwsm
 visual-studio-code-bin
-walker
 waybar
 wayfreeze
 whois
@@ -153,6 +140,7 @@ woff2-font-awesome
 wtype
 xdg-desktop-portal-gtk
 xdg-desktop-portal-hyprland
+xdg-terminal-exec
 xmlstarlet
 yaru-icon-theme
 yay
