@@ -1,0 +1,41 @@
+#!/bin/bash
+
+exit_screensaver() {
+  hyprctl keyword cursor:invisible false
+  pkill -f -9 "tty-clock"
+  pkill -f -9 "pipes.sh"
+  rm -f /tmp/alacritty-screensaver-clock.toml
+  exit 0
+}
+
+trap exit_screensaver SIGINT SIGTERM SIGHUP SIGQUIT
+
+cat > /tmp/alacritty-screensaver-clock.toml << EOF
+[window]
+padding.x = 0
+padding.y = 0
+decorations = "none"
+opacity = 0.0
+
+[font]
+size = 15.0
+
+[colors.primary]
+foreground = "#FFFFFF"
+EOF
+
+hyprctl keyword cursor:invisible true &>/dev/null
+
+alacritty --class ScreensaverPipes --title ScreensaverPipes \
+  -e bash -c "pipes.sh -p 10 -t 0" &
+
+sleep 0.1
+
+alacritty --config-file /tmp/alacritty-screensaver-clock.toml \
+  --class ScreensaverClock --title ScreensaverClock \
+  -e bash -c "tty-clock -S -C 7 -f '%d.%m.%Y'" &
+CLOCK_PID=$!
+
+wait "$CLOCK_PID"
+
+exit_screensaver

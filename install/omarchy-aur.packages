@@ -1,5 +1,7 @@
+hyprland-per-window-layout
 hyprmon-bin
 keepmenu
 pinentry-rofi
+pipes.sh
 python-pynput
-hyprland-per-window-layout
+tty-clock
