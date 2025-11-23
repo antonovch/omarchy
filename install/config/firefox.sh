@@ -77,6 +77,18 @@ if [[ ! -f /usr/lib/firefox/distribution/policies.json ]]; then
       "{cebd391d-f568-473f-bb6e-698d08ec81ec}": {
         "installation_mode": "force_installed",
         "install_url": "https://addons.mozilla.org/firefox/downloads/file/4567102/tokyo_night_dark_theme-2.6.xpi"
+      },
+      "{6d115fff-29b1-41c5-bac1-06f5bf567894}": {
+        "installation_mode": "force_installed",
+        "install_url": "https://addons.mozilla.org/firefox/downloads/file/4262341/hackerman_theme-1.0.xpi"
+      },
+      "{cb1e6534-4545-429e-9ee6-bc50c22ad5e2}": {
+        "installation_mode": "force_installed",
+        "install_url": "https://addons.mozilla.org/firefox/downloads/file/4180413/flexoki_light-1.0.xpi"
+      },
+      "{3c9f3c5d-ec80-455f-bd7c-4f2b51a1a4d9}": {
+        "installation_mode": "force_installed",
+        "install_url": "https://addons.mozilla.org/firefox/downloads/file/4219203/rose_pine_color_port-1.1.xpi"
       }
     }
   }
