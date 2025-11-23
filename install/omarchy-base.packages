@@ -2,15 +2,13 @@
 # This file is also used by the ISO builder when determining needs
 
 aether
-alacritty
 asdcontrol
 avahi
 bash-completion
 bat
-blueberry
+bluetui
 brightnessctl
 btop
-cargo
 clang
 clipmenu
 cmake
@@ -25,6 +23,7 @@ docker-buildx
 docker-compose
 dust
 evince
+exfatprogs
 expac
 eza
 fastfetch
@@ -39,6 +38,7 @@ firefoxpwa
 fzf
 gcc14
 gdb
+ghostty
 github-cli
 gnome-calculator
 gnome-keyring
@@ -75,7 +75,8 @@ llvm
 localsend
 luarocks
 mako
-man
+man-db
+mariadb-libs
 mise
 mpv
 nautilus
@@ -104,6 +105,8 @@ python-pykeepass
 python-terminaltexteffects
 qt5-wayland
 ripgrep
+ruby
+rust
 satty
 sddm
 signal-desktop
@@ -119,6 +122,7 @@ system-config-printer
 thunderbird
 tldr
 tree-sitter-cli
+tobi-try
 ttf-cascadia-mono-nerd
 ttf-ia-writer
 ttf-jetbrains-mono-nerd
@@ -126,6 +130,7 @@ tzupdate
 ufw
 ufw-docker
 unzip
+usage
 uwsm
 visual-studio-code-bin
 waybar
