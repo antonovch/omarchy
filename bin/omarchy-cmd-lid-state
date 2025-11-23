@@ -1,0 +1,13 @@
+#!/bin/bash
+
+LID_STATE_FILE="/proc/acpi/button/lid/LID0/state"
+
+if [ ! -f "$LID_STATE_FILE" ]; then
+    LID_STATE_FILE="/proc/acpi/button/lid/LID1/state"
+fi
+
+if grep -q "open" "$LID_STATE_FILE"; then
+    hyprctl keyword monitor "eDP-1, 1920x1080@60, 0x0, 1" >/dev/null
+else
+    hyprctl keyword monitor "eDP-1, disable" >/dev/null
+fi
