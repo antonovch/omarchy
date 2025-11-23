@@ -78,9 +78,9 @@ if [[ ! -f /usr/lib/firefox/distribution/policies.json ]]; then
         "installation_mode": "force_installed",
         "install_url": "https://addons.mozilla.org/firefox/downloads/file/4567102/tokyo_night_dark_theme-2.6.xpi"
       },
-      "{6d115fff-29b1-41c5-bac1-06f5bf567894}": {
+      "{461f2314-d043-410b-ad9c-069c99baca7e}": {
         "installation_mode": "force_installed",
-        "install_url": "https://addons.mozilla.org/firefox/downloads/file/4262341/hackerman_theme-1.0.xpi"
+        "install_url": "https://addons.mozilla.org/firefox/downloads/file/3842976/htb-1.0.xpi"
       },
       "{cb1e6534-4545-429e-9ee6-bc50c22ad5e2}": {
         "installation_mode": "force_installed",
