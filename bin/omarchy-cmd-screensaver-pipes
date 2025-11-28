@@ -1,41 +1,22 @@
 #!/bin/bash
 
-exit_screensaver() {
+cleanup() {
   hyprctl keyword cursor:invisible false
-  pkill -f -9 "tty-clock"
-  pkill -f -9 "pipes.sh"
-  rm -f /tmp/alacritty-screensaver-clock.toml
-  exit 0
+  if [ -n "$PIPES_PID" ]; then kill "$PIPES_PID" 2>/dev/null; fi
+  if [ -n "$CLOCK_PID" ]; then kill "$CLOCK_PID" 2>/dev/null; fi
 }
 
-trap exit_screensaver SIGINT SIGTERM SIGHUP SIGQUIT
-
-cat > /tmp/alacritty-screensaver-clock.toml << EOF
-[window]
-padding.x = 0
-padding.y = 0
-decorations = "none"
-opacity = 0.0
-
-[font]
-size = 15.0
-
-[colors.primary]
-foreground = "#FFFFFF"
-EOF
+trap cleanup EXIT SIGINT SIGTERM SIGHUP SIGQUIT
 
 hyprctl keyword cursor:invisible true &>/dev/null
 
-alacritty --class ScreensaverPipes --title ScreensaverPipes \
-  -e bash -c "pipes.sh -p 10 -t 0" &
+pipes.sh -p 10 -t 0 &
+PIPES_PID=$!
 
-sleep 0.1
+alacritty --class ScreensaverClock \
+  --config-file ~/.local/share/omarchy/default/alacritty/screensaver.toml \
+  -e tty-clock -S -c -C 7 -f '%d.%m.%Y' &
 
-alacritty --config-file /tmp/alacritty-screensaver-clock.toml \
-  --class ScreensaverClock --title ScreensaverClock \
-  -e bash -c "tty-clock -S -C 7 -f '%d.%m.%Y'" &
 CLOCK_PID=$!
 
 wait "$CLOCK_PID"
-
-exit_screensaver
