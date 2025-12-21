@@ -1,8 +1,6 @@
 #!/bin/bash
 
-if pidof hyprlock; then
-    exit 0
-fi
+pidof hyprlock && exit 0
 
 declare -A layout_index=(
     ["English (US)"]=0
