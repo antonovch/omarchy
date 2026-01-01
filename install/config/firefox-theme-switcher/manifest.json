@@ -1,7 +1,7 @@
 {
   "manifest_version": 2,
   "name": "Theme Switcher",
-  "version": "0.2.2",
+  "version": "0.2.4",
   "description": "On-demand theme switcher",
   "background": {
     "page": "background.html"
@@ -9,7 +9,11 @@
   "permissions": ["nativeMessaging", "storage", "theme", "management"],
   "browser_specific_settings": {
     "gecko": { 
-      "id": "remote-theme-switcher@local"
+      "id": "remote-theme-switcher@local",
+      "data_collection_permissions": {
+        "opt_in": false,
+        "required": ["none"]
+      }
     }
   }
 }

@@ -31,6 +31,9 @@ fi
 
 if omarchy-cmd-present firefox; then
   if [[ -f ~/.config/omarchy/current/theme/firefox.theme ]]; then
-    omarchy-theme-firefox-set "$(<~/.config/omarchy/current/theme/firefox.theme)" &
+    THEME_NAME=$(<~/.config/omarchy/current/theme/firefox.theme)
+    if [[ -n "$THEME_NAME" ]]; then
+      omarchy-theme-firefox-set "$THEME_NAME" &
+    fi
   fi
 fi

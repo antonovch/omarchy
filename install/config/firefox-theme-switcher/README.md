@@ -133,7 +133,7 @@ The extension communicates with the native host using JSON messages:
 ### Command line not working
 - Ensure Firefox is running for live switching
 - Check if socket exists and is accessible
-- For offline switching, state file is created at `~/.config/firefox-theme-switcher/state.json`
+- For offline switching, state file is created at `~/.local/share/omarchy/config/firefox-theme-switcher/state.json`
 
 ## License
 

@@ -22,6 +22,7 @@ sock_path = os.path.join(runtime_dir, "firefox-theme-switcher.sock")
 pathlib.Path(runtime_dir).mkdir(parents=True, exist_ok=True)
 
 pending_client = None
+pending_client_time = None
 
 def cleanup(*_):
     global pending_client
@@ -71,8 +72,20 @@ def handle_extension_cmd(msg):
             return {"ok": False, "error": str(e), "path": path}
     return None
 
+import time
+
 while True:
-    rlist, _, _ = select.select([sys.stdin.buffer, srv], [], [])
+    # Clean up stale pending client after 5 seconds
+    if pending_client and pending_client_time and (time.time() - pending_client_time > 5):
+        try:
+            pending_client.close()
+        except:
+            pass
+        pending_client = None
+        pending_client_time = None
+    
+    timeout = 1.0 if pending_client else None
+    rlist, _, _ = select.select([sys.stdin.buffer, srv], [], [], timeout)
     
     if sys.stdin.buffer in rlist:
         msg = read_msg()
@@ -91,6 +104,7 @@ while True:
                 finally:
                     pending_client.close()
                     pending_client = None
+                    pending_client_time = None
 
     if srv in rlist:
         conn, _ = srv.accept()
@@ -122,6 +136,7 @@ while True:
             
             send_msg(payload)
             pending_client = conn
+            pending_client_time = time.time()
             
         except Exception as e:
             try:

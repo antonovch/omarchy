@@ -35,59 +35,59 @@ if [[ ! -f /usr/lib/firefox/distribution/policies.json ]]; then
     },
     "ExtensionSettings": {
       "firefoxpwa@filips.si": {
-        "installation_mode": "force_installed",
+        "installation_mode": "normal_recommended",
         "install_url": "https://addons.mozilla.org/firefox/downloads/file/4537285/pwas_for_firefox-2.16.0.xpi"
       },
       "{f5525f34-4102-4f6e-8478-3cf23cfeff7a}": {
-        "installation_mode": "force_installed",
+        "installation_mode": "normal_recommended",
         "install_url": "https://addons.mozilla.org/firefox/downloads/file/3880040/catppuccin-1.0.xpi"
       },
       "{c827c446-3d00-4160-a992-3ebcbe6d81a6}": {
-        "installation_mode": "force_installed",
+        "installation_mode": "normal_recommended",
         "install_url": "https://addons.mozilla.org/firefox/downloads/file/3990326/catppuccin_latte_mauve_git-2.0.xpi"
       },
       "{0e5c8ff0-b54b-4bd1-b33e-d5e016e066f0}": {
-        "installation_mode": "force_installed",
+        "installation_mode": "normal_recommended",
         "install_url": "https://addons.mozilla.org/firefox/downloads/file/4565364/everforest_dark_medium_theme-2.4.xpi"
       },
       "{21ab01a8-2464-4824-bccb-6db15659347e}": {
-        "installation_mode": "force_installed",
+        "installation_mode": "normal_recommended",
         "install_url": "https://addons.mozilla.org/firefox/downloads/file/4503497/gruvbox_material_soft_theme-1.8.xpi"
       },
       "{26690e10-862d-456f-8bf2-50117a3cb206}": {
-        "installation_mode": "force_installed",
+        "installation_mode": "normal_recommended",
         "install_url": "https://addons.mozilla.org/firefox/downloads/file/2589656/japan_style_kanagawa_gr_232767-2.0.xpi"
       },
       "{f2b832a9-f0f5-4532-934c-74b25eb23fb9}": {
-        "installation_mode": "force_installed",
+        "installation_mode": "normal_recommended",
         "install_url": "https://addons.mozilla.org/firefox/downloads/file/4226379/matte_black_v1-2024.1.24.xpi"
       },
       "{f4c9e1d6-6630-4600-ad50-d223eab7f3e7}": {
-        "installation_mode": "force_installed",
+        "installation_mode": "normal_recommended",
         "install_url": "https://addons.mozilla.org/firefox/downloads/file/3849722/nord_firefox-2.41.xpi"
       },
       "{820afd08-7271-4f9d-8cec-43211ff42102}": {
-        "installation_mode": "force_installed",
+        "installation_mode": "normal_recommended",
         "install_url": "https://addons.mozilla.org/firefox/downloads/file/4005577/lambo_countach_darkgreen-1.0.xpi"
       },
       "{930de1b4-9447-4927-9877-4f7cc369bc57}": {
-        "installation_mode": "force_installed",
+        "installation_mode": "normal_recommended",
         "install_url": "https://addons.mozilla.org/firefox/downloads/file/3880719/monokai_pro_filter_ristretto-1.2.xpi"
       },
       "{cebd391d-f568-473f-bb6e-698d08ec81ec}": {
-        "installation_mode": "force_installed",
+        "installation_mode": "normal_recommended",
         "install_url": "https://addons.mozilla.org/firefox/downloads/file/4567102/tokyo_night_dark_theme-2.6.xpi"
       },
       "{461f2314-d043-410b-ad9c-069c99baca7e}": {
-        "installation_mode": "force_installed",
+        "installation_mode": "normal_recommended",
         "install_url": "https://addons.mozilla.org/firefox/downloads/file/3842976/htb-1.0.xpi"
       },
       "{cb1e6534-4545-429e-9ee6-bc50c22ad5e2}": {
-        "installation_mode": "force_installed",
+        "installation_mode": "normal_recommended",
         "install_url": "https://addons.mozilla.org/firefox/downloads/file/4180413/flexoki_light-1.0.xpi"
       },
       "{3c9f3c5d-ec80-455f-bd7c-4f2b51a1a4d9}": {
-        "installation_mode": "force_installed",
+        "installation_mode": "normal_recommended",
         "install_url": "https://addons.mozilla.org/firefox/downloads/file/4219203/rose_pine_color_port-1.1.xpi"
       }
     }
@@ -118,6 +118,7 @@ fi
 
 mkdir -p ~/.local/bin/
 cp ~/.local/share/omarchy/install/config/firefox-theme-switcher/firefox_theme_host.py ~/.local/bin/firefox_theme_host.py
+cp ~/.local/share/omarchy/install/config/firefox-theme-switcher/state.json ~/.local/share/omarchy/config/firefox-theme-switcher/state.json
 chmod +x ~/.local/bin/firefox_theme_host.py
 
 xdg-settings set default-web-browser firefox.desktop
