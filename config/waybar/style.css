@@ -174,12 +174,13 @@
   border-radius: 0;
   margin: 0;
   background-color: transparent;
-  padding-right: 0.75rem;
+  padding-right: 0.25rem;
 }
 
 #clock:last-child {
   border-radius: 0;
   margin: 0;
+  padding-right: 0.75rem;
 }
 
 .hidden {
