@@ -1,0 +1,27 @@
+#!/bin/bash
+
+# Fetch the latest changes from remote (without updating working tree)
+git -C "$OMARCHY_PATH" fetch origin >/dev/null 2>&1
+if [[ $? -ne 0 ]]; then
+  echo "Error: Could not fetch from remote."
+  exit 1
+fi
+
+# Get current branch
+current_branch=$(git -C "$OMARCHY_PATH" rev-parse --abbrev-ref HEAD)
+
+# Get local commit hash
+local_commit=$(git -C "$OMARCHY_PATH" rev-parse HEAD)
+
+# Get remote commit hash
+remote_commit=$(git -C "$OMARCHY_PATH" rev-parse origin/"$current_branch")
+
+if [[ "$local_commit" != "$remote_commit" ]]; then
+  # Count commits behind
+  commits_behind=$(git -C "$OMARCHY_PATH" rev-list HEAD..origin/"$current_branch" --count)
+  echo "Omarchy update available ($commits_behind commit(s) behind)"
+  exit 0
+else
+  echo "Omarchy is up to date"
+  exit 1
+fi

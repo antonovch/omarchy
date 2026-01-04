@@ -1,5 +1,18 @@
 #!/bin/bash
 
+print_status() {
+  if pgrep -x hypridle >/dev/null ; then
+      echo '{"text": "RUNNING", "class": "active", "tooltip": "Screen locking active\nLeft: Deactivate\nRight: Lock Screen"}'
+  else
+      echo '{"text": "NOT RUNNING", "class": "notactive", "tooltip": "Screen locking deactivated\nLeft: Activate\nRight: Lock Screen"}'
+  fi
+}
+
+if [ "$1" = "status" ]; then
+  print_status
+  exit 0
+fi
+
 if pgrep -x hypridle >/dev/null; then
   pkill -x hypridle
   notify-send "Stop locking computer when idle"
@@ -7,3 +20,7 @@ else
   uwsm-app -- hypridle >/dev/null 2>&1 &
   notify-send "Now locking computer when idle"
 fi
+
+sleep 0.2
+print_status
+pkill -RTMIN+9 waybar

@@ -1,6 +1,7 @@
 # Omarchy core package list installed via install/packaging/base.sh
 # This file is also used by the ISO builder when determining needs
 
+aether
 alacritty
 asdcontrol
 avahi
@@ -92,6 +93,7 @@ nvim
 obs-studio
 omarchy-nvim
 omarchy-walker
+pacman-contrib
 pamixer
 pinta
 playerctl
