@@ -10,6 +10,7 @@ disable_mouse = false                                                       # di
 debug = false                                                               # enables debug printing for some stuff, f.e. keybinds
 page_jump_items = 10                                                        # number of items to skip with Page Up/Down
 hide_quick_activation = true                                                # globally hide the quick activation buttons
+hide_action_hints = true
 
 [shell]
 anchor_top = true

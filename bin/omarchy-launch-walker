@@ -10,4 +10,9 @@ if ! pgrep -f "walker --gapplication-service" > /dev/null; then
   setsid uwsm-app -- walker --gapplication-service &
 fi
 
-exec walker --width 644 --maxheight 300 --minheight 300 "$@"
+WALKER_THEME=$(grep 'theme = ' "$HOME/.config/walker/config.toml" | sed 's/.*=\s* "\(.*\)".*/\1/')
+
+WIDTH=644
+[[ "$WALKER_THEME" == "dotfiles" ]] && WIDTH=300
+
+exec walker --width "$WIDTH" --maxheight 300 --minheight 300 "$@"

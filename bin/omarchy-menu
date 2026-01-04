@@ -143,8 +143,8 @@ show_toggle_menu() {
 
 show_style_menu() {
   case $(menu "Style" "󰸌  Theme\n  Walker Theme\n  Font\n  Background\n  Hyprland\n󱄄  Screensaver\n  About") in
-  *Theme*) show_theme_menu ;;
   *Walker\ Theme*) show_walker_theme_menu ;;
+  *Theme*) show_theme_menu ;;
   *Font*) show_font_menu ;;
   *Background*) omarchy-theme-bg-next ;;
   *Hyprland*) open_in_editor ~/.config/hypr/looknfeel.conf ;;

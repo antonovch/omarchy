@@ -90,6 +90,10 @@ child:selected .item-box {
 
 .item-text-box {}
 
+.item-text {
+  font-size: 16px;
+}
+
 .item-subtext {
   font-size: 12px;
   opacity: 0.5;
