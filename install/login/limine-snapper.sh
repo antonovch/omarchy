@@ -11,20 +11,21 @@ EOF
   # Detect boot mode
   [[ -d /sys/firmware/efi ]] && EFI=true
 
-  # Find config location
-  if [[ -f /boot/EFI/arch-limine/limine.conf ]]; then
-    limine_config="/boot/EFI/arch-limine/limine.conf"
-  elif [[ -f /boot/EFI/BOOT/limine.conf ]]; then
-    limine_config="/boot/EFI/BOOT/limine.conf"
-  elif [[ -f /boot/EFI/limine/limine.conf ]]; then
-    limine_config="/boot/EFI/limine/limine.conf"
-  elif [[ -f /boot/limine/limine.conf ]]; then
-    limine_config="/boot/limine/limine.conf"
-  elif [[ -f /boot/limine.conf ]]; then
-    limine_config="/boot/limine.conf"
-  else
-    echo "Error: Limine config not found" >&2
-    exit 1
+  limine_config=""
+
+  for cfg in \
+    /boot/limine.conf \
+    /boot/limine/limine.conf \
+    /boot/EFI/limine/limine.conf \
+    /boot/EFI/BOOT/limine.conf \
+    /boot/EFI/arch-limine/limine.conf
+  do
+    [[ -f $cfg ]] && limine_config="$cfg" && break
+  done
+
+  if [[ -z $limine_config ]]; then
+    echo "Limine config not found, skipping Limine sync"
+    exit 0
   fi
 
   CMDLINE=$(grep "^[[:space:]]*cmdline:" "$limine_config" | head -1 | sed 's/^[[:space:]]*cmdline:[[:space:]]*//')
@@ -108,6 +109,12 @@ EOF
   sudo sed -i 's/^FREE_LIMIT="0.2"/FREE_LIMIT="0.3"/' /etc/snapper/configs/{root,home}
 
   chrootable_systemctl_enable limine-snapper-sync.service
+fi
+
+# Snapper-safe: skip if /boot is not usable
+if ! mountpoint -q /boot || [[ ! -r /boot ]]; then
+  echo "Limine: /boot not available, skipping non-essential steps"
+  exit 0
 fi
 
 echo "Re-enabling mkinitcpio hooks..."
