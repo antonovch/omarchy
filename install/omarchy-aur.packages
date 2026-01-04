@@ -4,4 +4,5 @@ keepmenu
 pinentry-rofi
 pipes.sh
 python-pynput
+sushi-git
 tty-clock
