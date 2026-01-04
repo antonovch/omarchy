@@ -94,6 +94,7 @@
     "format": "{:L%a %d %b %H:%M}",
     "format-alt": "{:L%d %B W%V %Y}",
     "tooltip": false,
+    "locale": "en_US.UTF-8",
     "on-click-right": "omarchy-launch-floating-terminal-with-presentation omarchy-tz-select"
   },
   "network": {
