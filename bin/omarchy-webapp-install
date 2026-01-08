@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -e
+
 get_manifest_url() {
   local url="$1"
   local manifest_url=""

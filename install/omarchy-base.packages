@@ -23,6 +23,7 @@ dnsmasq
 docker
 docker-buildx
 docker-compose
+dotnet-runtime-9.0
 dust
 evince
 exfatprogs
@@ -94,6 +95,7 @@ obs-studio
 omarchy-nvim
 omarchy-walker
 pacman-contrib
+opencode
 pamixer
 pinta
 playerctl
@@ -151,4 +153,5 @@ xdg-terminal-exec
 xmlstarlet
 yaru-icon-theme
 yay
+yq
 zoxide

@@ -193,6 +193,8 @@
   border-radius: 0;
   margin: 0;
   padding: 0.5rem 0.5rem;
+  margin-left: 5px;
+  padding-bottom: 1px;
   background-color: transparent;
 }
 
@@ -227,4 +229,13 @@ tooltip {
 
 tooltip label {
   color: @foreground;
+}
+
+#custom-voxtype {
+  min-width: 12px;
+  margin: 0 0 0 7.5px;
+}
+
+#custom-voxtype.recording {
+  color: #a55555;
 }
