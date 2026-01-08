@@ -88,7 +88,8 @@
   "cpu": {
     "interval": 5,
     "format": "󰍛",
-    "on-click": "omarchy-launch-or-focus-tui btop"
+    "on-click": "omarchy-launch-or-focus-tui btop",
+    "on-click-right": "alacritty"
   },
   "clock": {
     "format": "{:L%a %d %b %H:%M}",

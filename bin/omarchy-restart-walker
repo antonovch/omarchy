@@ -13,7 +13,6 @@ if [[ $EUID -eq 0 ]]; then
       systemctl --user restart app-walker@autostart.service
     "
 else
-  elephant service enable 2>/dev/null
   systemctl --user restart elephant.service
   systemctl --user restart app-walker@autostart.service
 fi
