@@ -1,22 +1,38 @@
 #!/bin/bash
 
-cleanup() {
-  hyprctl keyword cursor:invisible false
+exit_screensaver() {
+  hyprctl keyword input:follow_mouse 1 &>/dev/null || true
+  hyprctl keyword cursor:invisible false &>/dev/null || true
   if [ -n "$PIPES_PID" ]; then kill "$PIPES_PID" 2>/dev/null; fi
   if [ -n "$CLOCK_PID" ]; then kill "$CLOCK_PID" 2>/dev/null; fi
+  exit 0
 }
 
-trap cleanup EXIT SIGINT SIGTERM SIGHUP SIGQUIT
+trap exit_screensaver EXIT SIGINT SIGTERM SIGHUP SIGQUIT
 
 hyprctl keyword cursor:invisible true &>/dev/null
+hyprctl keyword input:follow_mouse 0 &>/dev/null
 
-pipes.sh -p 10 -t 0 &
+alacritty --class=org.omarchy.screensaver \
+  --config-file ~/.local/share/omarchy/default/alacritty/screensaver.toml \
+  -e pipes.sh -p 10 -f 75 -t 0 -R 2>/dev/null &
+
 PIPES_PID=$!
 
-alacritty --class ScreensaverClock \
-  --config-file ~/.local/share/omarchy/default/alacritty/screensaver.toml \
-  -e tty-clock -S -c -C 7 -f '%d.%m.%Y' &
+hyprctl dispatch exec "[float; size 500 300; center; opacity 0.8; stayfocused; pin]" \
+  "alacritty --config-file ~/.local/share/omarchy/default/alacritty/screensaver.toml \
+  -e tty-clock -S -c -C 7 -f '%d.%m.%Y'" &>/dev/null &
 
-CLOCK_PID=$!
+sleep 0.1
 
-wait "$CLOCK_PID"
+CLOCK_PID=$(pgrep -f "tty-clock -S -c -C 7" | tail -n1)
+
+if [ -n "$CLOCK_PID" ]; then
+  while kill -0 "$CLOCK_PID" 2>/dev/null; do
+    if read -t 0.1 -n1 2>/dev/null; then
+      break
+    fi
+  done
+fi
+
+exit_screensaver
