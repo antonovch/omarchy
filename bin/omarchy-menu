@@ -450,7 +450,7 @@ show_remove_menu() {
 }
 
 show_remove_development_menu() {
-  case $(menu "Remove" "󰫏  Ruby on Rails\n  JavaScript\n  Go\n  PHP\n  Python\n  Elixir\n  Zig\n  Rust\n  Java\n  .NET\n  OCaml\n  Clojure") in
+  case $(menu "Remove" "󰫏  Ruby on Rails\n  JavaScript\n  Go\n  PHP\n  Python\n  Elixir\n  Zig\n  Rust\n  Java\n  .NET\n  OCaml\n  Clojure") in
   *Rails*) present_terminal "omarchy-remove-dev-env ruby" ;;
   *JavaScript*) show_remove_javascript_menu ;;
   *Go*) present_terminal "omarchy-remove-dev-env go" ;;
@@ -468,7 +468,7 @@ show_remove_development_menu() {
 }
 
 show_remove_javascript_menu() {
-  case $(menu "Remove" "  Node.js\n  Bun\n  Deno") in
+  case $(menu "Remove" "  Node.js\n  Bun\n  Deno") in
   *Node*) present_terminal "omarchy-remove-dev-env node" ;;
   *Bun*) present_terminal "omarchy-remove-dev-env bun" ;;
   *Deno*) present_terminal "omarchy-remove-dev-env deno" ;;
@@ -477,7 +477,7 @@ show_remove_javascript_menu() {
 }
 
 show_remove_php_menu() {
-  case $(menu "Remove" "  PHP\n  Laravel\n  Symfony") in
+  case $(menu "Remove" "  PHP\n  Laravel\n  Symfony") in
   *PHP*) present_terminal "omarchy-remove-dev-env php" ;;
   *Laravel*) present_terminal "omarchy-remove-dev-env laravel" ;;
   *Symfony*) present_terminal "omarchy-remove-dev-env symfony" ;;
@@ -486,7 +486,7 @@ show_remove_php_menu() {
 }
 
 show_remove_elixir_menu() {
-  case $(menu "Remove" "  Elixir\n  Phoenix") in
+  case $(menu "Remove" "  Elixir\n  Phoenix") in
   *Elixir*) present_terminal "omarchy-remove-dev-env elixir" ;;
   *Phoenix*) present_terminal "omarchy-remove-dev-env phoenix" ;;
   *) show_remove_development_menu ;;
