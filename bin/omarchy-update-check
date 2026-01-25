@@ -30,13 +30,26 @@ if [[ $(_checkCommandExists "pacman") == 0 ]]; then
     }
     check_lock_files
 
-    official_updates=$(checkupdates 2>/dev/null | wc -l)
+    checkupdates_out=$(checkupdates 2>/dev/null)
+    if [ -n "$checkupdates_out" ]; then
+        official_updates=$(printf '%s\n' "$checkupdates_out" | wc -l)
+    else
+        official_updates=0
+    fi
 
     aur_updates=0
+    paru_out=""
+    yay_out=""
     if command -v paru >/dev/null 2>&1; then
-        aur_updates=$(paru -Qua 2>/dev/null | wc -l)
+        paru_out=$(paru -Qua 2>/dev/null)
+        if [ -n "$paru_out" ]; then
+            aur_updates=$(printf '%s\n' "$paru_out" | wc -l)
+        fi
     elif command -v yay >/dev/null 2>&1; then
-        aur_updates=$(yay -Qua 2>/dev/null | wc -l)
+        yay_out=$(yay -Qua 2>/dev/null)
+        if [ -n "$yay_out" ]; then
+            aur_updates=$(printf '%s\n' "$yay_out" | wc -l)
+        fi
     fi
 
     updates=$((official_updates + aur_updates))
@@ -45,18 +58,46 @@ else
 fi
 
 css_class="green"
-if [ "$updates" -gt $threshhold_yellow ]; then
-    css_class="yellow"
-fi
-
-if [ "$updates" -gt $threshhold_red ]; then
-    css_class="red"
-fi
-
-if [ "$updates" != 0 ]; then
-    if [ "$updates" -gt $threshhold_green ]; then
-        printf '{"text": "%s", "alt": "%s", "tooltip": "Click to update your system", "class": "%s"}' "$updates" "$updates" "$css_class"
-    else
-        printf '{"text": "0", "alt": "0", "tooltip": "No updates available", "class": "green"}'
+    if [ "$updates" -gt $threshhold_yellow ]; then
+        css_class="yellow"
     fi
-fi
+
+    if [ "$updates" -gt $threshhold_red ]; then
+        css_class="red"
+    fi
+
+    if [ "$updates" != 0 ]; then
+        if [ "$updates" -gt $threshhold_green ]; then
+            # Build tooltip from available outputs, escape quotes and newlines for JSON
+            tooltip_body=""
+            if [ "$official_updates" -gt 0 ]; then
+                esc_official=$(printf '%s' "$checkupdates_out" | sed 's/"/\\"/g' | sed ':a;N;$!ba;s/\n/\\n/g')
+                tooltip_body="Official updates:\n${esc_official}"
+            fi
+            if [ "$aur_updates" -gt 0 ]; then
+                if [ -n "$paru_out" ]; then
+                    esc_aur=$(printf '%s' "$paru_out" | sed 's/"/\\"/g' | sed ':a;N;$!ba;s/\n/\\n/g')
+                elif [ -n "$yay_out" ]; then
+                    esc_aur=$(printf '%s' "$yay_out" | sed 's/"/\\"/g' | sed ':a;N;$!ba;s/\n/\\n/g')
+                else
+                    esc_aur=""
+                fi
+                if [ -n "$esc_aur" ]; then
+                    if [ -n "$tooltip_body" ]; then
+                        tooltip_body="$tooltip_body\n\nAUR updates:\n${esc_aur}"
+                    else
+                        tooltip_body="AUR updates:\n${esc_aur}"
+                    fi
+                fi
+            fi
+
+            # Fallback if tooltip_body empty for some reason
+            if [ -z "$tooltip_body" ]; then
+                tooltip_body="Updates available"
+            fi
+
+            printf '{"text": "%s", "alt": "%s", "tooltip": "%s", "class": "%s"}' "$updates" "$updates" "$tooltip_body" "$css_class"
+        else
+            printf '{"text": "0", "alt": "0", "tooltip": "No updates available", "class": "green"}'
+        fi
+    fi
