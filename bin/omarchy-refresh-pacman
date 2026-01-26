@@ -1,23 +1,45 @@
-#!/bin/bash
+#!/usr/bin/env bash
+set -euo pipefail
 
-# Overwrite the package configuration for /etc/pacman with the Omarchy default of using its dedicated mirrors and repositories, then update all packages.
-# This is used after switching between Omarchy release channels to ensure the right packages for the right channel are available.
+# Update or append Omarchy pacman config and mirrorlist in an idempotent way.
+# Usage: omarchy-refresh-pacman [edge|stable]
+mirror=${1:-${OMARCHY_MIRROR:-edge}}
+SRC_CONF="$HOME/.local/share/omarchy/default/pacman/pacman-${mirror}.conf"
+SRC_MIRROR="$HOME/.local/share/omarchy/default/pacman/mirrorlist-${mirror}"
 
-# Take backup of existing files
+# Take backups of existing files
 sudo cp -f /etc/pacman.conf /etc/pacman.conf.bak
 sudo cp -f /etc/pacman.d/mirrorlist /etc/pacman.d/mirrorlist.bak
 
-if [[ $1 == "edge" ]]; then
-  sudo cp -f ~/.local/share/omarchy/default/pacman/pacman-edge.conf /etc/pacman.conf
-  sudo cp -f ~/.local/share/omarchy/default/pacman/mirrorlist-edge /etc/pacman.d/mirrorlist
-  echo "Setting channel to edge"
+# Detect CachyOS and prefer appending the omarchy repository rather than overwriting config
+if [[ -f /etc/cachyos-release || ( -f /etc/pacman.conf && grep -iq 'cachyos' /etc/pacman.conf ) ]]; then
+  echo "CachyOS detected: updating omarchy repo and mirrorlist (idempotent)" >&2
+  OM_SERVER="Server = https://pkgs.omarchy.org/${mirror}/\$arch"
+
+  if grep -q '^\[omarchy\]' /etc/pacman.conf; then
+    # Replace existing Server line if present, otherwise add one inside the block
+    if grep -q '^\s*Server = .*pkgs.omarchy.org' /etc/pacman.conf; then
+      sudo sed -i "/^\[omarchy\]/,/^\[/ s|^Server = .*|${OM_SERVER}|" /etc/pacman.conf
+    else
+      sudo sed -i "/^\[omarchy\]/ a ${OM_SERVER}" /etc/pacman.conf
+    fi
+  else
+    sudo bash -c "cat >> /etc/pacman.conf <<'EOF'
+
+[omarchy]
+SigLevel = Optional TrustAll
+${OM_SERVER}
+EOF"
+  fi
+
+  if ! grep -qF "pkgs.omarchy.org/${mirror}" /etc/pacman.d/mirrorlist; then
+    sudo tee -a /etc/pacman.d/mirrorlist >/dev/null < "$SRC_MIRROR"
+  fi
+
 else
-  sudo cp -f ~/.local/share/omarchy/default/pacman/pacman-stable.conf /etc/pacman.conf
-  sudo cp -f ~/.local/share/omarchy/default/pacman/mirrorlist-stable /etc/pacman.d/mirrorlist
-  echo "Setting channel to stable"
+  sudo cp -f "$SRC_CONF" /etc/pacman.conf
+  sudo cp -f "$SRC_MIRROR" /etc/pacman.d/mirrorlist
 fi
 
-echo
-
-# Reset all package DBs and then update
+# Update package DBs and upgrade
 sudo pacman -Syyu --noconfirm
