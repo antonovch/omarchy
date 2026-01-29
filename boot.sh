@@ -36,7 +36,7 @@ if [[ $OMARCHY_REF != "master" ]]; then
 fi
 
 # Set edge mirror for dev installs
-if [[ $OMARCHY_REF == "dev" ]]; then
+if [[ $OMARCHY_REF == "dev" && -z ${OMARCHY_MIRROR} ]]; then
   export OMARCHY_MIRROR=edge
 else
   export OMARCHY_MIRROR=stable

@@ -1,1 +1,2 @@
+Server = https://pkgs.omarchy.org/edge/$arch
 Server = https://mirror.omarchy.org/$repo/os/$arch

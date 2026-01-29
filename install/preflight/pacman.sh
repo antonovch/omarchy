@@ -4,7 +4,7 @@ if [[ -n ${OMARCHY_ONLINE_INSTALL:-} ]]; then
 
   # Configure pacman
   mirror=${OMARCHY_MIRROR:-"edge"}
-  SRC_CONF="$HOME/.local/share/omarchy/default/pacman/pacman-${mirror}.conf"
+  SRC_CONF="$HOME/.local/share/omarchy/default/pacman/pacman.conf"
   SRC_MIRROR="$HOME/.local/share/omarchy/default/pacman/mirrorlist-${mirror}"
 
   REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
