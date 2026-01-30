@@ -4,18 +4,17 @@ if [[ -n ${OMARCHY_ONLINE_INSTALL:-} ]]; then
 
   # Configure pacman
   mirror=${OMARCHY_MIRROR:-"edge"}
-  SRC_CONF="$HOME/.local/share/omarchy/default/pacman/pacman.conf"
-  SRC_MIRROR="$HOME/.local/share/omarchy/default/pacman/mirrorlist-${mirror}"
+  SRC_CONF="$OMARCHY_PATH/default/pacman/pacman.conf"
+  SRC_MIRROR="$OMARCHY_PATH/default/pacman/mirrorlist-${mirror}"
 
-  REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-  REFRESH_SCRIPT="$REPO_ROOT/bin/omarchy-refresh-pacman"
+  REFRESH_SCRIPT="$OMARCHY_PATH/bin/omarchy-refresh-pacman"
 
   if [[ -x "$REFRESH_SCRIPT" ]]; then
     "$REFRESH_SCRIPT" "$mirror"
   else
     echo "Warning: $REFRESH_SCRIPT not found or not executable; falling back to copying files" >&2
     sudo cp -f "$SRC_CONF" /etc/pacman.conf
-    sudo cp -f "$SRC_MIRROR" /etc/pacman.d/mirrorlist
+    sudo cp -f "$SRC_MIRROR" /etc/pacman.d/omarchy-mirrorlist
   fi
 
   sudo pacman-key --recv-keys 40DFB630FF42BCFFB047046CF0134EE680CAC571 --keyserver keys.openpgp.org
