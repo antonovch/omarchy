@@ -50,8 +50,12 @@ EOF
 
   if [[ -z $limine_config ]]; then
     echo "Warning: Limine config not found in standard locations, will use Omarchy defaults"
-    # Create default config even if we can't find an existing one
+    # Extract cmdline from current boot parameters (without quiet/splash)
+    CMDLINE=$(cat /proc/cmdline | sed 's/\(quiet\|splash\|loglevel=[0-9]*\)//g' | xargs)
+    
+    # Create default config with detected cmdline
     sudo cp $OMARCHY_PATH/default/limine/default.conf /etc/default/limine
+    sudo sed -i "s|@@CMDLINE@@|$CMDLINE|g" /etc/default/limine
     sudo cp $OMARCHY_PATH/default/limine/limine.conf /boot/limine.conf
   else
     # Found existing config, extract cmdline and configure
