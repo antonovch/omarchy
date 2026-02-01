@@ -12,7 +12,9 @@ sudo cp -f /etc/pacman.conf /etc/pacman.conf.bak
 [[ -f /etc/pacman.d/omarchy-mirrorlist ]] && sudo cp -f /etc/pacman.d/omarchy-mirrorlist /etc/pacman.d/omarchy-mirrorlist.bak
 
 # Detect CachyOS and prefer appending the Omarchy repository rather than overwriting config
-if [[ -f /etc/cachyos-release || ( -f /etc/pacman.conf && $(grep -ic 'cachyos' /etc/pacman.conf) -gt 0 ) ]]; then
+if [[ -f /etc/pacman.conf && $(grep -ic 'cachyos' /etc/pacman.conf) -gt 0 ]] || \
+   pacman -Qq cachyos-keyring &>/dev/null || \
+   uname -r | grep -qi cachyos; then
   echo "CachyOS detected: updating omarchy repo and mirrorlist (idempotent)" >&2
 
   if grep -q '^\[omarchy\]' /etc/pacman.conf; then
