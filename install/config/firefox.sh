@@ -118,7 +118,8 @@ fi
 
 mkdir -p ~/.local/bin/
 cp ~/.local/share/omarchy/install/config/firefox-theme-switcher/firefox_theme_host.py ~/.local/bin/firefox_theme_host.py
-cp ~/.local/share/omarchy/install/config/firefox-theme-switcher/state.json ~/.local/share/omarchy/config/firefox-theme-switcher/state.json
+mkdir -p ~/.config/firefox-theme-switcher
+cp ~/.local/share/omarchy/install/config/firefox-theme-switcher/state.json ~/.config/firefox-theme-switcher/state.json
 chmod +x ~/.local/bin/firefox_theme_host.py
 
 xdg-settings set default-web-browser firefox.desktop
