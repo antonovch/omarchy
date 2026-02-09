@@ -1,37 +1,20 @@
 if command -v limine &>/dev/null; then
   sudo pacman -S --noconfirm --needed limine-snapper-sync limine-mkinitcpio-hook
 
-  # Detect CachyOS for systemd-based initramfs (better LUKS support)
   if [[ -f /etc/cachyos-release || ( -f /etc/pacman.conf && $(grep -ic 'cachyos' /etc/pacman.conf) -gt 0 ) ]]; then
     echo "CachyOS detected: using systemd-based initramfs hooks for improved LUKS support"
-    # systemd-based hooks: better LUKS unlocking, improved device handling
-    # - systemd replaces udev for device management
-    # - sd-encrypt replaces encrypt for LUKS (uses systemd-cryptsetup-generator)
-    # - sd-vconsole replaces keymap+consolefont for console setup
-    # - sd-btrfs-overlayfs replaces btrfs-overlayfs (pre-mount vs post-mount)
     sudo tee /etc/mkinitcpio.conf.d/omarchy_hooks.conf <<EOF >/dev/null
 HOOKS=(base systemd plymouth autodetect microcode modconf kms keyboard sd-vconsole block sd-encrypt filesystems fsck sd-btrfs-overlayfs)
 EOF
   else
-    sudo tee /etc/mkinitcpio.conf.d/omarchy_hooks.conf <<EOF >/dev/null
+  sudo tee /etc/mkinitcpio.conf.d/omarchy_hooks.conf <<EOF >/dev/null
 HOOKS=(base udev plymouth keyboard autodetect microcode modconf kms keymap consolefont block encrypt filesystems fsck btrfs-overlayfs)
 EOF
   fi
 
-  # Add thunderbolt module for docking station support
   sudo tee /etc/mkinitcpio.conf.d/thunderbolt_module.conf <<EOF >/dev/null
 MODULES+=(thunderbolt)
 EOF
-
-  # Add i915 module for Intel MacBooks with Retina displays
-  # This ensures proper early KMS initialization for HiDPI screens
-  product_name="$(cat /sys/class/dmi/id/product_name 2>/dev/null || true)"
-  if [[ "$product_name" =~ MacBook ]] && lspci 2>/dev/null | grep -qi 'vga.*intel'; then
-    echo "Intel MacBook detected: adding i915 for early KMS (Retina display support)"
-    sudo tee /etc/mkinitcpio.conf.d/intel_kms_module.conf <<EOF >/dev/null
-MODULES+=(i915)
-EOF
-  fi
 
   # Detect boot mode
   [[ -d /sys/firmware/efi ]] && EFI=true
@@ -59,24 +42,23 @@ EOF
     sudo cp $OMARCHY_PATH/default/limine/limine.conf /boot/limine.conf
   else
     # Found existing config, extract cmdline and configure
-    CMDLINE=$(grep "^[[:space:]]*cmdline:" "$limine_config" | head -1 | sed 's/^[[:space:]]*cmdline:[[:space:]]*//')
+  CMDLINE=$(grep "^[[:space:]]*cmdline:" "$limine_config" | head -1 | sed 's/^[[:space:]]*cmdline:[[:space:]]*//')
 
-    sudo cp $OMARCHY_PATH/default/limine/default.conf /etc/default/limine
-    sudo sed -i "s|@@CMDLINE@@|$CMDLINE|g" /etc/default/limine
-
-    # Remove the original config file if it's not /boot/limine.conf
-    if [[ "$limine_config" != "/boot/limine.conf" ]] && [[ -f "$limine_config" ]]; then
-      sudo rm "$limine_config"
-    fi
-
-    # We overwrite the whole thing knowing the limine-update will add the entries for us
-    sudo cp $OMARCHY_PATH/default/limine/limine.conf /boot/limine.conf
-  fi
+  sudo cp $OMARCHY_PATH/default/limine/default.conf /etc/default/limine
+  sudo sed -i "s|@@CMDLINE@@|$CMDLINE|g" /etc/default/limine
 
   # UKI and EFI fallback are EFI only
   if [[ -z $EFI ]]; then
     sudo sed -i '/^ENABLE_UKI=/d; /^ENABLE_LIMINE_FALLBACK=/d' /etc/default/limine
   fi
+
+  # Remove the original config file if it's not /boot/limine.conf
+  if [[ "$limine_config" != "/boot/limine.conf" ]] && [[ -f "$limine_config" ]]; then
+    sudo rm "$limine_config"
+  fi
+
+  # We overwrite the whole thing knowing the limine-update will add the entries for us
+  sudo cp $OMARCHY_PATH/default/limine/limine.conf /boot/limine.conf
 
 
   # Match Snapper configs if not installing from the ISO
