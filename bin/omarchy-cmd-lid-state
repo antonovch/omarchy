@@ -1,13 +1,13 @@
 #!/bin/bash
 
-LID_STATE_FILE="/proc/acpi/button/lid/LID0/state"
-
-if [ ! -f "$LID_STATE_FILE" ]; then
-    LID_STATE_FILE="/proc/acpi/button/lid/LID1/state"
-fi
+LID_STATE_FILE=$(find /proc/acpi/button/lid/ -name state | head -n 1)
 
 if grep -q "open" "$LID_STATE_FILE"; then
-    hyprctl keyword monitor "eDP-1, 1920x1080@60, 0x0, 1" >/dev/null
+    hyprctl keyword monitor "eDP-1, preferred, auto, auto" >/dev/null
+    hyprctl dispatch dpms on >/dev/null
+    brightnessctl -d "apple-kbd-backlight" set 50% >/dev/null
 else
+    brightnessctl -d "apple-kbd-backlight" set 0 >/dev/null
+    hyprctl dispatch dpms off >/dev/null
     hyprctl keyword monitor "eDP-1, disable" >/dev/null
 fi
