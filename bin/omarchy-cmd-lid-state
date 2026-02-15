@@ -4,12 +4,17 @@ LID_STATE_FILE=$(find /proc/acpi/button/lid/ -name state | head -n 1)
 MONITOR=$(hyprctl monitors -j | jq -r '.[0].name')
 SCALE=$(hyprctl monitors -j | jq -r '.[0].scale')
 
+KBD_BACKLIGHT=""
+if brightnessctl -l 2>/dev/null | grep -qiE "(kbd|keyboard)[-_]?backlight"; then
+  KBD_BACKLIGHT=$(brightnessctl -l 2>/dev/null | grep -oiE "[^']*\<(kbd|keyboard)[-_]?backlight[^']*" | head -n 1)
+fi
+
 if grep -q "open" "$LID_STATE_FILE"; then
     hyprctl keyword monitor "$MONITOR,preferred,auto,$SCALE" >/dev/null
     hyprctl dispatch dpms on >/dev/null
-    brightnessctl -d "apple-kbd-backlight" set 50% >/dev/null
+    [[ -n "$KBD_BACKLIGHT" ]] && brightnessctl -d "$KBD_BACKLIGHT" set 50% >/dev/null 2>&1
 else
-    brightnessctl -d "apple-kbd-backlight" set 0 >/dev/null
+    [[ -n "$KBD_BACKLIGHT" ]] && brightnessctl -d "$KBD_BACKLIGHT" set 0 >/dev/null 2>&1
     hyprctl dispatch dpms off >/dev/null
     hyprctl keyword monitor "eDP-1, disable" >/dev/null
 fi
