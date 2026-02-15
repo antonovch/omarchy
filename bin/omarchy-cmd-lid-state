@@ -1,9 +1,11 @@
 #!/bin/bash
 
 LID_STATE_FILE=$(find /proc/acpi/button/lid/ -name state | head -n 1)
+MONITOR=$(hyprctl monitors -j | jq -r '.[0].name')
+SCALE=$(hyprctl monitors -j | jq -r '.[0].scale')
 
 if grep -q "open" "$LID_STATE_FILE"; then
-    hyprctl keyword monitor "eDP-1, preferred, auto, auto" >/dev/null
+    hyprctl keyword monitor "$MONITOR,preferred,auto,$SCALE" >/dev/null
     hyprctl dispatch dpms on >/dev/null
     brightnessctl -d "apple-kbd-backlight" set 50% >/dev/null
 else
