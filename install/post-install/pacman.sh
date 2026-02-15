@@ -1,16 +1,16 @@
 # Configure pacman via the centralized refresh script
-mirror=${OMARCHY_MIRROR:-"edge"}
+channel=${OMARCHY_CHANNEL:-"stable"}
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 REFRESH_SCRIPT="$REPO_ROOT/bin/omarchy-refresh-pacman"
 
 if [[ -x "$REFRESH_SCRIPT" ]]; then
-  "$REFRESH_SCRIPT" "$mirror"
+  "$REFRESH_SCRIPT" "$channel"
 else
   # Fallback: copy the channel files directly
-  SRC_CONF="$HOME/.local/share/omarchy/default/pacman/pacman-${mirror}.conf"
-  SRC_MIRROR="$HOME/.local/share/omarchy/default/pacman/mirrorlist-${mirror}"
+  SRC_CONF="$HOME/.local/share/omarchy/default/pacman/pacman-${channel}.conf"
+  SRC_MIRROR="$HOME/.local/share/omarchy/default/pacman/mirrorlist-${channel}"
   sudo cp -f "$SRC_CONF" /etc/pacman.conf
-  sudo cp -f "$SRC_MIRROR" /etc/pacman.d/mirrorlist
+  sudo cp -f "$SRC_MIRROR" /etc/pacman.d/omarchy-mirrorlist
 fi
 
 if lspci -nn | grep -q "106b:180[12]"; then

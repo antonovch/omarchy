@@ -2,10 +2,20 @@
 set -euo pipefail
 
 # Update or append Omarchy pacman config and mirrorlist in an idempotent way.
-# Usage: omarchy-refresh-pacman [edge|stable]
-mirror=${1:-${OMARCHY_MIRROR:-edge}}
-SRC_CONF="$HOME/.local/share/omarchy/default/pacman/pacman.conf"
-SRC_MIRROR="$HOME/.local/share/omarchy/default/pacman/mirrorlist-${mirror}"
+# Usage: omarchy-refresh-pacman [stable|rc|edge]
+channel="${1:-stable}"
+
+# Validate channel early
+if [[ "$channel" != "stable" && "$channel" != "rc" && "$channel" != "edge" ]]; then
+  echo "Error: Invalid channel '$channel'. Must be one of: stable, rc, edge" >&2
+  exit 1
+fi
+
+OMARCHY_PATH="$HOME/.local/share/omarchy"
+SRC_CONF="$OMARCHY_PATH/default/pacman/pacman-$channel.conf"
+SRC_MIRROR="$OMARCHY_PATH/default/pacman/mirrorlist-$channel"
+
+echo "Setting Omarchy pacman channel to: $channel"
 
 # Take backups of existing files
 sudo cp -f /etc/pacman.conf /etc/pacman.conf.bak
@@ -15,14 +25,14 @@ sudo cp -f /etc/pacman.conf /etc/pacman.conf.bak
 if [[ -f /etc/pacman.conf && $(grep -ic 'cachyos' /etc/pacman.conf) -gt 0 ]] || \
    pacman -Qq cachyos-keyring &>/dev/null || \
    uname -r | grep -qi cachyos; then
-  echo "CachyOS detected: updating omarchy repo and mirrorlist (idempotent)" >&2
+  echo "CachyOS detected: updating Omarchy repo config"
 
   if grep -q '^\[omarchy\]' /etc/pacman.conf; then
     if ! grep -q "Include = /etc/pacman.d/omarchy-mirrorlist" /etc/pacman.conf; then
       sudo sed -i "/^\[omarchy\]/,/^\[/ s|^Server = .*|Include = /etc/pacman.d/omarchy-mirrorlist|" /etc/pacman.conf
-      if ! sed -n "/^\[omarchy\]/,/^\[/p" /etc/pacman.conf | grep -q '^SigLevel'; then
-        sudo sed -i "/^\[omarchy\]/ a SigLevel = Optional TrustAll" /etc/pacman.conf
-      fi
+    fi
+    if ! sed -n "/^\[omarchy\]/,/^\[/p" /etc/pacman.conf | grep -q '^SigLevel'; then
+      sudo sed -i "/^\[omarchy\]/ a SigLevel = Optional TrustAll" /etc/pacman.conf
     fi
   else
     sudo bash -c "cat >> /etc/pacman.conf <<'EOF'
@@ -32,19 +42,12 @@ SigLevel = Optional TrustAll
 Include = /etc/pacman.d/omarchy-mirrorlist
 EOF"
   fi
-
-channel="${1:-stable}"
-
-if [[ "$channel" != "stable" && "$channel" != "rc" && "$channel" != "edge" ]]; then
-  echo "Error: Invalid channel '$channel'. Must be one of: stable, rc, edge"
-  exit 1
+else
+  echo "Installing Omarchy pacman configuration"
+  sudo cp -f "$SRC_CONF" /etc/pacman.conf
 fi
 
-echo "Setting channel to $channel"
-echo
-
-sudo cp -f "$OMARCHY_PATH/default/pacman/pacman-$channel.conf" /etc/pacman.conf
-sudo cp -f "$OMARCHY_PATH/default/pacman/mirrorlist-$channel" /etc/pacman.d/mirrorlist
+sudo cp -f "$SRC_MIRROR" /etc/pacman.d/omarchy-mirrorlist
 
 # Reset all package DBs and then update
 sudo pacman -Syyu --noconfirm
