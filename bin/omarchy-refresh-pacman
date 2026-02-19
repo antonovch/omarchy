@@ -50,4 +50,4 @@ fi
 sudo cp -f "$SRC_MIRROR" /etc/pacman.d/omarchy-mirrorlist
 
 # Reset all package DBs and then update
-sudo pacman -Syyu --noconfirm
+sudo pacman -Syyuu --noconfirm

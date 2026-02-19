@@ -23,6 +23,6 @@ if [[ -n ${OMARCHY_ONLINE_INSTALL:-} ]]; then
   sudo pacman -Syyu --noconfirm
   sudo pacman -S --noconfirm --needed omarchy-keyring
 
-  # Refresh all repos again after keyring installation
+  # Refresh all repos
   sudo pacman -Syyu --noconfirm
 fi
