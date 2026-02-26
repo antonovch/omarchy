@@ -15,6 +15,6 @@ if grep -q "open" "$LID_STATE_FILE"; then
     [[ -n "$KBD_BACKLIGHT" ]] && brightnessctl -d "$KBD_BACKLIGHT" set 50% >/dev/null 2>&1
 else
     [[ -n "$KBD_BACKLIGHT" ]] && brightnessctl -d "$KBD_BACKLIGHT" set 0 >/dev/null 2>&1
-    hyprctl dispatch dpms off >/dev/null
-    hyprctl keyword monitor "eDP-1, disable" >/dev/null
+    hyprctl keyword monitor "eDP-1, disable" >/dev/null    
+    hyprctl dispatch dpms on >/dev/null 
 fi
