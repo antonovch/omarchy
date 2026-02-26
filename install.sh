@@ -7,6 +7,7 @@ set -eEo pipefail
 export OMARCHY_PATH="$HOME/.local/share/omarchy"
 export OMARCHY_INSTALL="$OMARCHY_PATH/install"
 export OMARCHY_INSTALL_LOG_FILE="/var/log/omarchy-install.log"
+export OMARCHY_INSTALLING=1
 export PATH="$OMARCHY_PATH/bin:$PATH"
 
 # Install

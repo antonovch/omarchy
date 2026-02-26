@@ -141,7 +141,7 @@ async function applyStartupTheme() {
     const home = await getHomeDir();
     if (!home || !port) return;
     
-    const statePath = `${home}/.local/share/omarchy/config/firefox-theme-switcher/state.json`;
+    const statePath = `${home}/.config/firefox-theme-switcher/state.json`;
     const response = await readFile(statePath);
     
     if (response.ok && response.data) {

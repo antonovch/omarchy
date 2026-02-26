@@ -38,16 +38,18 @@ echo "$THEME_NAME" >"$HOME/.config/omarchy/current/theme.name"
 # Change background with theme
 omarchy-theme-bg-next
 
-# Restart components to apply new theme
-if pgrep -x waybar >/dev/null; then
-  omarchy-restart-waybar
-fi
-omarchy-restart-swayosd
-omarchy-restart-terminal
-omarchy-restart-hyprctl
-omarchy-restart-btop
-omarchy-restart-opencode
-omarchy-restart-mako
+# Skip interactive operations during installation
+if [[ -z ${OMARCHY_INSTALLING:-} ]]; then
+  # Restart components to apply new theme
+  if pgrep -x waybar >/dev/null; then
+    omarchy-restart-waybar
+  fi
+  omarchy-restart-swayosd 2>/dev/null || true
+  omarchy-restart-terminal 2>/dev/null || true
+  omarchy-restart-hyprctl 2>/dev/null || true
+  omarchy-restart-btop 2>/dev/null || true
+  omarchy-restart-opencode 2>/dev/null || true
+  omarchy-restart-mako 2>/dev/null || true
 
 # Change app-specific themes
 omarchy-theme-set-gnome

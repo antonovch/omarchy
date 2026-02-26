@@ -1,8 +1,6 @@
 hyprland-per-window-layout
 hyprmon-bin
-keepmenu
+keepmenu-git
 pinentry-rofi
 pipes.sh
-python-pynput
-sushi-git
 tty-clock
