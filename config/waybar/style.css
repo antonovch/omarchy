@@ -38,7 +38,6 @@
 #clock,
 #pulseaudio,
 #custom-hypridle,
-#custom-updates,
 #custom-packages,
 #custom-screenrecording-indicator,
 #custom-omarchy,
@@ -105,7 +104,6 @@
 }
 
 
-#custom-updates,
 #custom-packages {
   border-radius: 1rem;
   color: @foreground;

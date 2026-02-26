@@ -56,7 +56,7 @@
     "signal": 7,
     "interval": 21600
   },
-    "custom/packages": {
+  "custom/packages": {
     "format": " {}",
     "escape": true,
     "return-type": "json",
