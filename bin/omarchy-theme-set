@@ -50,6 +50,7 @@ if [[ -z ${OMARCHY_INSTALLING:-} ]]; then
   omarchy-restart-btop 2>/dev/null || true
   omarchy-restart-opencode 2>/dev/null || true
   omarchy-restart-mako 2>/dev/null || true
+fi
 
 # Change app-specific themes
 omarchy-theme-set-gnome
