@@ -5,7 +5,7 @@
   "spacing": 0,
   "height": 26,
   "modules-left": ["custom/omarchy", "hyprland/workspaces", "custom/packages"],
-  "modules-center": ["clock", "custom/update", "custom/voxtype", "custom/screenrecording-indicator", "custom/idle-indicator", "custom/notification-silencing-indicator"],
+  "modules-center": ["group/center"],
   "modules-right": [
     "group/tray-expander",
     "custom/music",
@@ -159,6 +159,10 @@
       "children-class": "tray-group-item"
     },
     "modules": ["custom/expand-icon", "custom/brightness", "custom/filemanager", "tray"]
+  },
+  "group/center": {
+    "orientation": "horizontal",
+    "modules": ["clock", "custom/update", "custom/voxtype", "custom/screenrecording-indicator", "custom/idle-indicator", "custom/notification-silencing-indicator"]
   },
   "custom/expand-icon": {
     "format": "",
