@@ -71,8 +71,7 @@
     "return-type": "json",
     "escape": true,
     "exec-on-event": true,
-    "interval": 60,
-    "exec": "omarchy-toggle-idle status",
+    "exec": "$OMARCHY_PATH/default/waybar/indicators/idle.sh",
     "on-click": "omarchy-toggle-idle",
     "signal": 9
   },
@@ -186,12 +185,6 @@
     "format": "",
     "on-click": "nautilus",
     "tooltip-format": "Open Filemanager"
-  },
-  "custom/idle-indicator": {
-    "on-click": "omarchy-toggle-idle",
-    "exec": "$OMARCHY_PATH/default/waybar/indicators/idle.sh",
-    "signal": 9,
-    "return-type": "json"
   },
   "custom/notification-silencing-indicator": {
     "on-click": "omarchy-toggle-notification-silencing",
