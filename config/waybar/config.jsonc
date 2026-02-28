@@ -70,7 +70,6 @@
     "format": "",
     "return-type": "json",
     "escape": true,
-    "exec-on-event": true,
     "exec": "$OMARCHY_PATH/default/waybar/indicators/idle.sh",
     "on-click": "omarchy-toggle-idle",
     "signal": 9
