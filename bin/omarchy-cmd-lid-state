@@ -1,8 +1,10 @@
 #!/bin/bash
 
 LID_STATE_FILE=$(find /proc/acpi/button/lid/ -name state | head -n 1)
-MONITOR=$(hyprctl monitors -j | jq -r '.[0].name')
-SCALE=$(hyprctl monitors -j | jq -r '.[0].scale')
+[[ -z $LID_STATE_FILE ]] && exit 0
+
+MOVED_WS_FILE="/tmp/omarchy-lid-moved-workspaces"
+BRIGHTNESS_FILE="/tmp/omarchy-lid-saved-brightness"
 
 KBD_BACKLIGHT=""
 if brightnessctl -l 2>/dev/null | grep -qiE "(kbd|keyboard)[-_]?backlight"; then
@@ -10,11 +12,44 @@ if brightnessctl -l 2>/dev/null | grep -qiE "(kbd|keyboard)[-_]?backlight"; then
 fi
 
 if grep -q "open" "$LID_STATE_FILE"; then
-    hyprctl keyword monitor "$MONITOR,preferred,auto,$SCALE" >/dev/null
-    hyprctl dispatch dpms on >/dev/null
+    INTERNAL_MONITOR=$(hyprctl monitors all -j | jq -r '.[] | select(.name | startswith("eDP")) | .name' || echo "eDP-1")
+
     [[ -n "$KBD_BACKLIGHT" ]] && brightnessctl -d "$KBD_BACKLIGHT" set 50% >/dev/null 2>&1
+
+    # Restore screen brightness
+    if [[ -f $BRIGHTNESS_FILE ]]; then
+      brightnessctl set "$(cat "$BRIGHTNESS_FILE")" >/dev/null 2>&1
+      rm -f "$BRIGHTNESS_FILE"
+    else
+      brightnessctl set 100% >/dev/null 2>&1
+    fi
+
+    # Move workspaces back to internal monitor
+    if [[ -f $MOVED_WS_FILE ]]; then
+      while read -r ws; do
+        [[ -n $ws ]] && hyprctl dispatch moveworkspacetomonitor "$ws" "$INTERNAL_MONITOR" >/dev/null 2>&1
+      done < "$MOVED_WS_FILE"
+      rm -f "$MOVED_WS_FILE"
+    fi
 else
+    INTERNAL_MONITOR=$(hyprctl monitors -j | jq -r '.[] | select(.name | startswith("eDP")) | .name' || echo "eDP-1")
+    EXTERNAL_MONITOR=$(hyprctl monitors -j | jq -r '.[] | select(.name | startswith("eDP") | not) | .name' | head -n 1)
+
     [[ -n "$KBD_BACKLIGHT" ]] && brightnessctl -d "$KBD_BACKLIGHT" set 0 >/dev/null 2>&1
-    hyprctl keyword monitor "eDP-1, disable" >/dev/null    
-    hyprctl dispatch dpms on >/dev/null 
+
+    # Turn off screen via brightness (dpms is unreliable on some hardware)
+    brightnessctl get > "$BRIGHTNESS_FILE" 2>/dev/null
+    brightnessctl set 0 >/dev/null 2>&1
+
+    # Move all workspaces from internal to external monitor
+    if [[ -n $EXTERNAL_MONITOR ]]; then
+      ws_ids=$(hyprctl workspaces -j | jq -r ".[] | select(.monitor == \"$INTERNAL_MONITOR\") | .id")
+      if [[ -n $ws_ids ]]; then
+        echo "$ws_ids" > "$MOVED_WS_FILE"
+        for ws in $ws_ids; do
+          hyprctl dispatch moveworkspacetomonitor "$ws" "$EXTERNAL_MONITOR" >/dev/null 2>&1
+        done
+      fi
+      hyprctl dispatch focusmonitor "$EXTERNAL_MONITOR" >/dev/null 2>&1
+    fi
 fi
