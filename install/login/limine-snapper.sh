@@ -1,7 +1,12 @@
 if command -v limine &>/dev/null; then
   sudo pacman -S --noconfirm --needed limine-snapper-sync limine-mkinitcpio-hook
 
+  IS_CACHYOS=false
   if [[ -f /etc/cachyos-release || ( -f /etc/pacman.conf && $(grep -ic 'cachyos' /etc/pacman.conf) -gt 0 ) ]]; then
+    IS_CACHYOS=true
+  fi
+
+  if [[ $IS_CACHYOS == true ]]; then
     echo "CachyOS detected: using systemd-based initramfs hooks for improved LUKS support"
     sudo tee /etc/mkinitcpio.conf.d/omarchy_hooks.conf <<EOF >/dev/null
 HOOKS=(base systemd plymouth autodetect microcode modconf kms keyboard sd-vconsole block sd-encrypt filesystems fsck sd-btrfs-overlayfs)
@@ -46,7 +51,22 @@ EOF
   fi
 
   # Create or update /etc/default/limine with Omarchy settings
-  if [[ ! -f /etc/default/limine ]]; then
+  if [[ $IS_CACHYOS == true ]]; then
+    # On CachyOS, only apply minimal settings — preserve CachyOS OS name, UKI name, and boot paths
+    echo "CachyOS detected: applying minimal limine settings, preserving CachyOS boot entries..."
+
+    if ! grep -q "quiet splash" /etc/default/limine; then
+      sudo sed -i '/^KERNEL_CMDLINE\[default\]+=/d' /etc/default/limine
+      echo 'KERNEL_CMDLINE[default]+="quiet splash"' | sudo tee -a /etc/default/limine >/dev/null
+    fi
+
+    if ! grep -q "^MAX_SNAPSHOT_ENTRIES=" /etc/default/limine; then
+      echo 'MAX_SNAPSHOT_ENTRIES=5' | sudo tee -a /etc/default/limine >/dev/null
+    fi
+    if ! grep -q "^SNAPSHOT_FORMAT_CHOICE=" /etc/default/limine; then
+      echo 'SNAPSHOT_FORMAT_CHOICE=5' | sudo tee -a /etc/default/limine >/dev/null
+    fi
+  elif [[ ! -f /etc/default/limine ]]; then
     # No existing config, create from template
     sudo cp $OMARCHY_PATH/default/limine/default.conf /etc/default/limine
     sudo sed -i "s|@@CMDLINE@@|$CMDLINE|g" /etc/default/limine
