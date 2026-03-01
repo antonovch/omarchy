@@ -36,7 +36,7 @@ get_manifest_url() {
 
 ICON_DIR="$HOME/.local/share/applications/icons"
 
-if (( $# < 3 )); then
+if (( $# < 2 )); then
   echo -e "\e[32mLet's create a new web app you can start with the app launcher.\n\e[0m"
   APP_NAME=$(gum input --prompt "Name> " --placeholder "My favorite web app")
   APP_URL=$(gum input --prompt "URL> " --placeholder "https://example.com")
@@ -60,10 +60,10 @@ else
   if [[ ! $APP_URL =~ ^[a-zA-Z][a-zA-Z0-9+.-]*: ]]; then
     APP_URL="https://$APP_URL"
   fi
-  ICON_REF="$3"
+  ICON_REF="$3"      # Optional icon URL or local icon name
   ICON_URL=""
-  CUSTOM_CMD="$4" # Optional custom exec command
-  MIME_TYPES="$5"  # Optional mime types
+  CUSTOM_CMD="$4"   # Optional custom exec command
+  MIME_TYPES="$5"   # Optional mime types
   INTERACTIVE_MODE=false
 fi
 
@@ -83,8 +83,13 @@ fi
 if [[ $ICON_REF =~ ^https?:// ]]; then
   ICON_PATH="$ICON_DIR/$APP_NAME.png"
   if ! curl -fsSL -o "$ICON_PATH" "$ICON_REF" || [[ ! -s $ICON_PATH ]]; then
-    echo "Error: Failed to download icon."
-    exit 1
+    if [[ $INTERACTIVE_MODE == "true" ]]; then
+      echo "Error: Failed to download icon."
+      exit 1
+    else
+      echo "Warning: Failed to download icon, continuing without one."
+      ICON_PATH=""
+    fi
   fi
 else
   ICON_PATH="$ICON_DIR/$ICON_REF"
