@@ -1,16 +1,15 @@
-#!/usr/bin/env bash
+#!/bin/bash
 set -euo pipefail
 
-if [[ $# -lt 1 ]]; then
+if (( $# < 1 )); then
   echo "Usage: $0 <light|dark|toggle|theme-id>" >&2
   exit 1
 fi
 
 CMD="$1"
 SOCK="${XDG_RUNTIME_DIR:-$HOME/.local/run}/firefox-theme-switcher.sock"
-STATE_FILE="${XDG_CONFIG_HOME:-$HOME/.config}/firefox-theme-switcher/state.json"
-
-mkdir -p "$(dirname "$STATE_FILE")"
+STATE_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/firefox-theme-switcher"
+STATE_FILE="$STATE_DIR/state.json"
 
 # Prepare JSON payload
 case "$CMD" in
@@ -22,28 +21,19 @@ case "$CMD" in
     ;;
 esac
 
-# Try live socket first
-if [[ -S "$SOCK" ]]; then
+# Try live socket first (fall through to state file on failure)
+if [[ -S $SOCK ]]; then
   if command -v socat >/dev/null 2>&1; then
-    printf '%s\n' "$MSG" | socat - UNIX-CONNECT:"$SOCK"
-    exit 0
+    if printf '%s\n' "$MSG" | socat -T3 - UNIX-CONNECT:"$SOCK" 2>/dev/null; then
+      exit 0
+    fi
   elif command -v ncat >/dev/null 2>&1; then
-    printf '%s\n' "$MSG" | ncat -U "$SOCK"
-    exit 0
-  else
-    echo "Install socat or ncat to use this script." >&2
-    exit 1
+    if printf '%s\n' "$MSG" | ncat -U -w3 "$SOCK" 2>/dev/null; then
+      exit 0
+    fi
   fi
 fi
 
-# If socket not available, write persistent state file
-echo "Firefox is not running; saving desired theme for next startup: $STATE_FILE" >&2
-
-# Wrap MSG in proper JSON
-if [[ "$CMD" == "dark" || "$CMD" == "light" || "$CMD" == "toggle" ]]; then
-  jq -nc --arg cmd "$CMD" '{"cmd":$cmd}' >"$STATE_FILE"
-else
-  echo "$MSG" >"$STATE_FILE"
-fi
-
-echo "Saved theme state."
+# Socket not available or send failed — save state for next Firefox startup
+mkdir -p "$STATE_DIR"
+echo "$MSG" > "$STATE_FILE"

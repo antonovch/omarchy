@@ -63,3 +63,8 @@ linux-t2
 linux-t2-headers
 t2fanrd
 tiny-dfr
+
+# Intel MacBook support packages (2012-2017)
+snd-hda-macbookpro-dkms-git
+facetimehd-firmware
+facetimehd-dkms-git

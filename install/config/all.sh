@@ -35,11 +35,13 @@ run_logged $OMARCHY_INSTALL/config/hardware/ignore-power-button.sh
 run_logged $OMARCHY_INSTALL/config/hardware/legacy-gpu-terminal.sh
 run_logged $OMARCHY_INSTALL/config/hardware/nvidia.sh
 run_logged $OMARCHY_INSTALL/config/hardware/vulkan.sh
+run_logged $OMARCHY_INSTALL/config/hardware/fix-intel-firefox-dmabuf.sh
 run_logged $OMARCHY_INSTALL/config/hardware/fix-f13-amd-audio-input.sh
 run_logged $OMARCHY_INSTALL/config/hardware/fix-bcm43xx.sh
 run_logged $OMARCHY_INSTALL/config/hardware/fix-apple-spi-keyboard.sh
 run_logged $OMARCHY_INSTALL/config/hardware/fix-apple-suspend-nvme.sh
 run_logged $OMARCHY_INSTALL/config/hardware/fix-apple-t2.sh
+run_logged $OMARCHY_INSTALL/config/hardware/fix-intel-macbook.sh
 run_logged $OMARCHY_INSTALL/config/hardware/fix-surface-keyboard.sh
 run_logged $OMARCHY_INSTALL/config/hardware/fix-asus-rog-audio-mixer.sh
 run_logged $OMARCHY_INSTALL/config/hardware/fix-asus-rog-mic.sh

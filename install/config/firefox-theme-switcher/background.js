@@ -1,6 +1,5 @@
 let port;
-let pendingHomeResolver = null;
-let pendingFileResolver = null;
+let themeApplied = false;
 
 const THEMES = {
   dark: {
@@ -29,68 +28,85 @@ const THEMES = {
   }
 };
 
+// Serialize all theme operations to prevent races
+let queue = Promise.resolve();
+function enqueue(fn) {
+  queue = queue.then(fn).catch(() => {});
+  return queue;
+}
+
 async function applyScheme(scheme) {
   if (!THEMES[scheme]) throw new Error("unknown scheme: " + scheme);
   await browser.theme.update(THEMES[scheme]);
   await browser.storage.local.set({ scheme, themeId: null });
+  themeApplied = true;
   return { ok: true, applied: scheme };
 }
 
 async function toggleScheme() {
   const { scheme = "light" } = await browser.storage.local.get("scheme");
-  const next = scheme === "dark" ? "light" : "dark";
-  return applyScheme(next);
+  return applyScheme(scheme === "dark" ? "light" : "dark");
 }
 
 async function applyThemeById(themeId) {
-  const addons = await browser.management.getAll();
-  const theme = addons.find(a => a.type === "theme" && a.id === themeId);
-  if (!theme) throw new Error("Theme not found: " + themeId);
-  
-  // Disable all other themes first
-  for (const addon of addons) {
-    if (addon.type === "theme" && addon.enabled && addon.id !== themeId) {
-      await browser.management.setEnabled(addon.id, false);
-    }
+  // Clear any dynamic theme so the extension theme takes effect
+  await browser.theme.reset();
+
+  // Retry briefly in case theme extensions are still being installed (first boot)
+  let theme;
+  for (let i = 0; i < 3; i++) {
+    const addons = await browser.management.getAll();
+    theme = addons.find(a => a.type === "theme" && a.id === themeId);
+    if (theme) break;
+    await new Promise(r => setTimeout(r, 1000));
   }
-  
+  if (!theme) throw new Error("Theme not found: " + themeId);
+
   await browser.management.setEnabled(theme.id, true);
   await browser.storage.local.set({ themeId, scheme: null });
+  themeApplied = true;
   return { ok: true, applied: themeId };
 }
 
+async function restoreFromStorage() {
+  const stored = await browser.storage.local.get(["scheme", "themeId"]);
+  if (stored.themeId) return applyThemeById(stored.themeId);
+  if (stored.scheme) return applyScheme(stored.scheme);
+  return { ok: true, applied: "default" };
+}
+
+async function handleCommand(msg) {
+  if (typeof msg === "string") msg = { cmd: msg };
+
+  switch (msg.cmd) {
+    case "restore":      return restoreFromStorage();
+    case "toggle":       return toggleScheme();
+    case "dark":
+    case "light":        return applyScheme(msg.cmd);
+    case "set":          return applyScheme((msg.scheme || "").toLowerCase());
+    case "applyThemeId": return applyThemeById(msg.themeId);
+    default:             throw new Error("unknown command: " + JSON.stringify(msg));
+  }
+}
+
 // ---------- Native Messaging ----------
-async function onNativeMessage(msg) {
-  // 1. Handle internal response for get_home
-  if (msg.home && pendingHomeResolver) {
-    pendingHomeResolver(msg.home);
-    pendingHomeResolver = null;
-    return;
-  }
+// The host sends a startup command as its first message:
+//   - State file contents if one existed (theme changed while Firefox was closed)
+//   - {"cmd":"restore"} otherwise (restore last theme from storage)
+// After that, all messages are live theme-switch commands from the CLI.
 
-  // 2. Handle internal response for read_file
-  if ((msg.ok !== undefined || msg.error !== undefined) && pendingFileResolver) {
-    pendingFileResolver(msg);
-    pendingFileResolver = null;
-    return;
-  }
+function onNativeMessage(msg) {
+  // Ignore response acks (our own replies echoed back)
+  if (!msg.cmd && msg.ok !== undefined) return;
 
-  // 3. Handle external commands
-  try {
-    if (typeof msg === "string") msg = { cmd: msg };
-    let res;
-
-    if (msg.cmd === "toggle") res = await toggleScheme();
-    else if (msg.cmd === "set" && msg.scheme) res = await applyScheme(msg.scheme.toLowerCase());
-    else if (msg.cmd === "dark" || msg.cmd === "light") res = await applyScheme(msg.cmd);
-    else if (msg.cmd === "applyThemeId" && msg.themeId) res = await applyThemeById(msg.themeId);
-    else if (msg.ok !== undefined) return;
-    else throw new Error("bad message");
-
-    port?.postMessage(res);
-  } catch (e) {
-    port?.postMessage({ ok: false, error: e.message });
-  }
+  enqueue(async () => {
+    try {
+      const res = await handleCommand(msg);
+      port?.postMessage(res);
+    } catch (e) {
+      port?.postMessage({ ok: false, error: e.message });
+    }
+  });
 }
 
 function connectNative() {
@@ -106,95 +122,24 @@ function connectNative() {
   }
 }
 
-async function getHomeDir() {
-  if (!port) return null;
-  return new Promise((resolve) => {
-    pendingHomeResolver = resolve;
-    port.postMessage({ cmd: "get_home" });
-    setTimeout(() => {
-      if (pendingHomeResolver === resolve) {
-        pendingHomeResolver = null;
-        resolve(null);
-      }
-    }, 1000);
-  });
-}
-
-async function readFile(path) {
-  if (!port) return { ok: false };
-  return new Promise((resolve) => {
-    pendingFileResolver = resolve;
-    port.postMessage({ cmd: "read_file", path });
-    setTimeout(() => {
-      if (pendingFileResolver === resolve) {
-        pendingFileResolver = null;
-        resolve({ ok: false });
-      }
-    }, 1000);
-  });
-}
-
-let initialized = false;
-
-async function applyStartupTheme() {
-  try {
-    const home = await getHomeDir();
-    if (!home || !port) return;
-    
-    const statePath = `${home}/.config/firefox-theme-switcher/state.json`;
-    const response = await readFile(statePath);
-    
-    if (response.ok && response.data) {
-      const data = JSON.parse(response.data);
-      
-      if (data.cmd === "dark" || data.cmd === "light") {
-        await applyScheme(data.cmd);
-      } else if (data.cmd === "toggle") {
-        await toggleScheme();
-      } else if (data.cmd === "applyThemeId" && data.themeId) {
-        await applyThemeById(data.themeId);
-      }
-
-      port.postMessage({ cmd: "delete_file", path: statePath });
-    } else {
-      // No state file - restore last applied theme from storage
-      const stored = await browser.storage.local.get(["scheme", "themeId"]);
-      
-      if (stored.themeId) {
-        await applyThemeById(stored.themeId);
-      } else if (stored.scheme) {
-        await applyScheme(stored.scheme);
-      }
-      // If nothing stored, keep Firefox's default theme
-    }
-  } catch (e) {
-    // Ignore errors - just keep existing theme
-  }
-}
-
 connectNative();
 
-async function init() {
-  if (initialized) return;
-  initialized = true;
-  
-  // Wait briefly for port connection
-  for (let i = 0; i < 10 && !port; i++) {
-    await new Promise(r => setTimeout(r, 100));
+// On first install, default to dark if nothing is stored
+browser.runtime.onInstalled.addListener((details) => {
+  if (details.reason === "install") {
+    enqueue(async () => {
+      const stored = await browser.storage.local.get(["scheme", "themeId"]);
+      if (!stored.scheme && !stored.themeId) {
+        await applyScheme("dark");
+      }
+    });
   }
-  
-  await applyStartupTheme();
-}
-
-browser.runtime.onStartup.addListener(init);
-browser.runtime.onInstalled.addListener(async (details) => {
-  // On first install or update, ensure dark theme is default if nothing is set
-  if (details.reason === "install" || details.reason === "update") {
-    const stored = await browser.storage.local.get(["scheme", "themeId"]);
-    if (!stored.scheme && !stored.themeId) {
-      await applyScheme("dark");
-    }
-  }
-  await init();
 });
-setTimeout(init, 200);
+
+// Safety net: if the native host hasn't sent a startup command within 2s,
+// restore from storage ourselves (handles host crash / missing native manifest)
+setTimeout(() => {
+  if (!themeApplied) {
+    enqueue(() => restoreFromStorage().catch(() => {}));
+  }
+}, 2000);

@@ -37,7 +37,7 @@ else
 
     [[ -n "$KBD_BACKLIGHT" ]] && brightnessctl -d "$KBD_BACKLIGHT" set 0 >/dev/null 2>&1
 
-    # Turn off screen via brightness (dpms is unreliable on some hardware)
+    # Turn off screen via brightness
     brightnessctl get > "$BRIGHTNESS_FILE" 2>/dev/null
     brightnessctl set 0 >/dev/null 2>&1
 

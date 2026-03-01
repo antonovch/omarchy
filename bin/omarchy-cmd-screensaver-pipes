@@ -1,10 +1,23 @@
 #!/bin/bash
 
+CLOCK_CLASS="org.omarchy.clock"
+CLOCK_LAUNCHED=false
+
+close_screensaver_windows() {
+  hyprctl clients -j 2>/dev/null | \
+    jq -r '.[] | select(.class == "org.omarchy.screensaver" or .class == "'"$CLOCK_CLASS"'") | .address' 2>/dev/null | \
+    while read -r addr; do
+      hyprctl dispatch closewindow "address:$addr" &>/dev/null
+    done
+}
+
 exit_screensaver() {
+  trap - EXIT SIGINT SIGTERM SIGHUP SIGQUIT
   hyprctl keyword input:follow_mouse 1 &>/dev/null || true
   hyprctl keyword cursor:invisible false &>/dev/null || true
-  if [ -n "$PIPES_PID" ]; then kill "$PIPES_PID" 2>/dev/null; fi
-  if [ -n "$CLOCK_PID" ]; then kill "$CLOCK_PID" 2>/dev/null; fi
+  if [[ -n $PIPES_PID ]]; then kill "$PIPES_PID" 2>/dev/null; fi
+  if [[ -n $MONITOR_PID ]]; then kill "$MONITOR_PID" 2>/dev/null; fi
+  close_screensaver_windows
   exit 0
 }
 
@@ -13,26 +26,52 @@ trap exit_screensaver EXIT SIGINT SIGTERM SIGHUP SIGQUIT
 hyprctl keyword cursor:invisible true &>/dev/null
 hyprctl keyword input:follow_mouse 0 &>/dev/null
 
-alacritty --class=org.omarchy.screensaver \
-  --config-file ~/.local/share/omarchy/default/alacritty/screensaver.toml \
-  -e pipes.sh -p 10 -f 75 -t 0 -R 2>/dev/null &
+# Launch clock overlay if tty-clock is available
+if command -v tty-clock &>/dev/null; then
+  terminal=${1:-$(xdg-terminal-exec --print-id 2>/dev/null)}
 
+  case $terminal in
+  *Alacritty*)
+    clock_cmd="alacritty --class=$CLOCK_CLASS --config-file ~/.local/share/omarchy/default/alacritty/screensaver.toml -e tty-clock -S -c -C 7 -f '%d.%m.%Y'"
+    ;;
+  *ghostty*)
+    clock_cmd="ghostty --class=$CLOCK_CLASS --config-file=~/.local/share/omarchy/default/ghostty/screensaver --font-size=18 -e tty-clock -S -c -C 7 -f '%d.%m.%Y'"
+    ;;
+  *kitty*)
+    clock_cmd="kitty --class=$CLOCK_CLASS --override font_size=18 --override window_padding_width=0 -e tty-clock -S -c -C 7 -f '%d.%m.%Y'"
+    ;;
+  *)
+    clock_cmd="alacritty --class=$CLOCK_CLASS --config-file ~/.local/share/omarchy/default/alacritty/screensaver.toml -e tty-clock -S -c -C 7 -f '%d.%m.%Y'"
+    ;;
+  esac
+
+  hyprctl dispatch exec "[float; size 500 300; center; opacity 0.8; pin]" "$clock_cmd" &>/dev/null
+  CLOCK_LAUNCHED=true
+fi
+
+# Run pipes in this terminal with isolated stdin so key presses go to our read below
+PIPES_FIFO=$(mktemp -u /tmp/omarchy-pipes-XXXXXX)
+mkfifo "$PIPES_FIFO"
+pipes.sh -p 10 -f 75 -t 0 -R 0<>"$PIPES_FIFO" 2>/dev/null &
 PIPES_PID=$!
+rm -f "$PIPES_FIFO"
 
-hyprctl dispatch exec "[float; size 500 300; center; opacity 0.8; stayfocused; pin]" \
-  "alacritty --config-file ~/.local/share/omarchy/default/alacritty/screensaver.toml \
-  -e tty-clock -S -c -C 7 -f '%d.%m.%Y'" &>/dev/null &
-
-sleep 0.1
-
-CLOCK_PID=$(pgrep -f "tty-clock -S -c -C 7" | tail -n1)
-
-if [ -n "$CLOCK_PID" ]; then
-  while kill -0 "$CLOCK_PID" 2>/dev/null; do
-    if read -t 0.1 -n1 2>/dev/null; then
+# Monitor: dismiss screensaver if pipes crashes or clock window disappears
+(
+  sleep 2
+  while true; do
+    if ! kill -0 "$PIPES_PID" 2>/dev/null; then break; fi
+    if [[ $CLOCK_LAUNCHED == true ]] && \
+       ! hyprctl clients -j 2>/dev/null | jq -e ".[] | select(.class == \"$CLOCK_CLASS\")" &>/dev/null; then
       break
     fi
+    sleep 1
   done
-fi
+  kill -TERM $$ 2>/dev/null
+) &
+MONITOR_PID=$!
+
+# Any key press in this terminal dismisses the screensaver
+read -r -s -n1 2>/dev/null
 
 exit_screensaver

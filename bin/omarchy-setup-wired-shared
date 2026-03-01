@@ -1,12 +1,78 @@
-sudo tee /etc/systemd/network/20-enp0s31f6.network >/dev/null <<'EOF'
+#!/bin/bash
+
+# Toggle wired Ethernet between WAN (DHCP client) and shared (DHCP server + NAT) mode.
+# Usage: omarchy-setup-wired-shared [wan|shared]
+# Without arguments, toggles between modes.
+
+# Find the first wired Ethernet interface
+IFACE=$(ip -o link show | awk -F': ' '{print $2}' | while read -r iface; do
+  [[ -d /sys/class/net/$iface/device ]] && [[ ! -d /sys/class/net/$iface/wireless ]] && echo "$iface" && break
+done)
+
+if [[ -z $IFACE ]]; then
+  echo "No wired Ethernet interface found"
+  exit 1
+fi
+
+NETWORK_FILE="/etc/systemd/network/20-${IFACE}.network"
+
+set_wan() {
+  sudo tee "$NETWORK_FILE" >/dev/null <<EOF
 [Match]
-Name=enp0s31f6
+Name=${IFACE}
+
+[Network]
+DHCP=yes
+IPForward=yes
+
+[DHCPv4]
+RouteMetric=100
+EOF
+  sudo systemctl restart systemd-networkd
+  echo "Wired ($IFACE): WAN mode (DHCP client)"
+}
+
+set_shared() {
+  sudo tee "$NETWORK_FILE" >/dev/null <<EOF
+[Match]
+Name=${IFACE}
 
 [Network]
 Address=10.42.0.1/24
 DHCPServer=yes
-IPMasquerade=yes
+IPMasquerade=ipv4
 IPForward=yes
-EOF
 
-sudo systemctl restart systemd-networkd systemd-resolved
+[DHCPServer]
+PoolOffset=100
+PoolSize=100
+EmitDNS=yes
+DNS=1.1.1.1
+EOF
+  sudo systemctl restart systemd-networkd
+  echo "Wired ($IFACE): Shared mode (DHCP server at 10.42.0.1/24)"
+}
+
+current_mode() {
+  if grep -q "DHCPServer=yes" "$NETWORK_FILE" 2>/dev/null; then
+    echo "shared"
+  else
+    echo "wan"
+  fi
+}
+
+MODE="${1:-}"
+
+if [[ -z $MODE ]]; then
+  if [[ $(current_mode) == "shared" ]]; then
+    MODE=wan
+  else
+    MODE=shared
+  fi
+fi
+
+case $MODE in
+  wan)    set_wan ;;
+  shared) set_shared ;;
+  *)      echo "Usage: omarchy-setup-wired-shared [wan|shared]"; exit 1 ;;
+esac

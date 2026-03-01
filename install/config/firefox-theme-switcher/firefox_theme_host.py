@@ -1,31 +1,46 @@
 #!/usr/bin/env python3
-import os, sys, json, struct, socket, pathlib, signal, select
+import json, os, pathlib, select, signal, socket, struct, sys, time
+
+STDIN_FD = sys.stdin.fileno()
+
+def read_exact(n):
+    """Read exactly n bytes from stdin fd (bypasses Python buffering)."""
+    buf = b""
+    while len(buf) < n:
+        chunk = os.read(STDIN_FD, n - len(buf))
+        if not chunk:
+            return None
+        buf += chunk
+    return buf
 
 def read_msg():
-    rawlen = sys.stdin.buffer.read(4)
-    if not rawlen:
+    rawlen = read_exact(4)
+    if rawlen is None:
         return None
     msglen = struct.unpack("<I", rawlen)[0]
-    data = sys.stdin.buffer.read(msglen)
-    if not data:
+    data = read_exact(msglen)
+    if data is None:
         return None
     return json.loads(data.decode("utf-8"))
 
 def send_msg(obj):
     data = json.dumps(obj).encode("utf-8")
-    sys.stdout.buffer.write(struct.pack("<I", len(data)))
-    sys.stdout.buffer.write(data)
-    sys.stdout.flush()
+    payload = struct.pack("<I", len(data)) + data
+    sys.stdout.buffer.write(payload)
+    sys.stdout.buffer.flush()
 
+# Paths
 runtime_dir = os.environ.get("XDG_RUNTIME_DIR") or os.path.join(os.path.expanduser("~"), ".local", "run")
 sock_path = os.path.join(runtime_dir, "firefox-theme-switcher.sock")
+config_dir = os.environ.get("XDG_CONFIG_HOME") or os.path.join(os.path.expanduser("~"), ".config")
+state_path = os.path.join(config_dir, "firefox-theme-switcher", "state.json")
+
 pathlib.Path(runtime_dir).mkdir(parents=True, exist_ok=True)
 
 pending_client = None
 pending_client_time = None
 
 def cleanup(*_):
-    global pending_client
     try:
         if pending_client:
             pending_client.close()
@@ -36,6 +51,8 @@ def cleanup(*_):
 
 signal.signal(signal.SIGTERM, cleanup)
 signal.signal(signal.SIGINT, cleanup)
+
+# Create UNIX socket
 try:
     if os.path.exists(sock_path):
         os.unlink(sock_path)
@@ -47,64 +64,51 @@ except Exception as e:
     send_msg({"host_error": str(e)})
     cleanup()
 
-def handle_extension_cmd(msg):
-    cmd = msg.get("cmd")
-    if cmd == "get_home":
-        return {"home": os.path.expanduser("~")}
-    if cmd == "read_file":
-        path = msg.get("path")
-        try:
-            if path and os.path.exists(path):
-                with open(path, 'r') as f:
-                    data = f.read()
-                return {"ok": True, "data": data}
-            return {"ok": False, "error": "file not found", "path": path}
-        except Exception as e:
-            return {"ok": False, "error": str(e), "path": path}
-    if cmd == "delete_file":
-        path = msg.get("path")
-        try:
-            if path and os.path.exists(path):
-                os.unlink(path)
-                return {"ok": True, "deleted": path}
-            return {"ok": False, "error": "file not found", "path": path}
-        except Exception as e:
-            return {"ok": False, "error": str(e), "path": path}
-    return None
+# On startup: send state file content or "restore" command to the extension.
+# This replaces the old get_home/read_file/delete_file roundtrip protocol.
+try:
+    if os.path.exists(state_path):
+        with open(state_path, "r") as f:
+            state = json.loads(f.read())
+        os.unlink(state_path)
+        send_msg(state)
+    else:
+        send_msg({"cmd": "restore"})
+except Exception:
+    send_msg({"cmd": "restore"})
 
-import time
-
+# Main event loop
 while True:
     # Clean up stale pending client after 5 seconds
     if pending_client and pending_client_time and (time.time() - pending_client_time > 5):
         try:
             pending_client.close()
-        except:
+        except Exception:
             pass
         pending_client = None
         pending_client_time = None
-    
+
     timeout = 1.0 if pending_client else None
-    rlist, _, _ = select.select([sys.stdin.buffer, srv], [], [], timeout)
-    
-    if sys.stdin.buffer in rlist:
+    rlist, _, _ = select.select([STDIN_FD, srv], [], [], timeout)
+
+    if STDIN_FD in rlist:
         msg = read_msg()
         if msg is None:
             cleanup()
-        
-        resp = handle_extension_cmd(msg)
-        if resp is not None:
-            send_msg(resp)
-        else:
-            if pending_client and ("ok" in msg or "error" in msg):
+
+        # Forward extension response to the waiting socket client
+        if pending_client and ("ok" in msg or "error" in msg):
+            try:
+                pending_client.sendall((json.dumps(msg) + "\n").encode("utf-8"))
+            except Exception:
+                pass
+            finally:
                 try:
-                    pending_client.sendall((json.dumps(msg) + "\n").encode("utf-8"))
-                except:
-                    pass
-                finally:
                     pending_client.close()
-                    pending_client = None
-                    pending_client_time = None
+                except Exception:
+                    pass
+                pending_client = None
+                pending_client_time = None
 
     if srv in rlist:
         conn, _ = srv.accept()
@@ -113,7 +117,7 @@ while True:
                 conn.sendall(b'{"ok":false,"error":"busy"}\n')
                 conn.close()
                 continue
-                
+
             data = b""
             while True:
                 chunk = conn.recv(4096)
@@ -123,24 +127,24 @@ while True:
                 if b"\n" in data:
                     break
             line = data.decode("utf-8").strip()
-            
+
             try:
                 payload = json.loads(line)
             except Exception:
                 if line == "toggle":
                     payload = {"cmd": "toggle"}
-                elif line in ["dark", "light"]:
+                elif line in ("dark", "light"):
                     payload = {"cmd": line}
                 else:
-                    payload = {"cmd": "set", "scheme": line}
-            
+                    payload = {"cmd": "applyThemeId", "themeId": line}
+
             send_msg(payload)
             pending_client = conn
             pending_client_time = time.time()
-            
+
         except Exception as e:
             try:
                 conn.sendall((json.dumps({"ok": False, "error": str(e)}) + "\n").encode("utf-8"))
-            except:
+            except Exception:
                 pass
             conn.close()
