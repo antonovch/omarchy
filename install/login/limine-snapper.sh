@@ -1,9 +1,15 @@
 if command -v limine &>/dev/null; then
-  sudo pacman -S --noconfirm --needed limine-snapper-sync limine-mkinitcpio-hook
-
   IS_CACHYOS=false
   if [[ -f /etc/cachyos-release || ( -f /etc/pacman.conf && $(grep -ic 'cachyos' /etc/pacman.conf) -gt 0 ) ]]; then
     IS_CACHYOS=true
+  fi
+
+  if [[ $IS_CACHYOS == true ]]; then
+    # CachyOS already handles UKI generation via its own presets; adding
+    # limine-mkinitcpio-hook would produce a second competing UKI entry
+    sudo pacman -S --noconfirm --needed limine-snapper-sync
+  else
+    sudo pacman -S --noconfirm --needed limine-snapper-sync limine-mkinitcpio-hook
   fi
 
   if [[ $IS_CACHYOS == true ]]; then
@@ -27,28 +33,18 @@ EOF
   # Detect boot mode
   [[ -d /sys/firmware/efi ]] && EFI=true
 
-  # Extract cmdline from existing config or /proc/cmdline
-  CMDLINE=""
-  
-  # Try /etc/default/limine first
-  if [[ -f /etc/default/limine ]]; then
-    CMDLINE=$(grep "^KERNEL_CMDLINE\[default\]=" /etc/default/limine | head -1 | sed 's/^KERNEL_CMDLINE\[default\]="\(.*\)"/\1/' | sed 's/\(quiet\|splash\|loglevel=[0-9]*\)//g' | xargs)
+  # Find existing limine.conf to extract cmdline from
+  limine_config=""
+  for cfg in /boot/limine.conf /boot/limine/limine.conf /boot/EFI/limine/limine.conf /boot/EFI/BOOT/limine.conf /boot/EFI/arch-limine/limine.conf; do
+    [[ -f $cfg ]] && limine_config="$cfg" && break
+  done
+
+  if [[ $IS_CACHYOS != true && -z $limine_config ]]; then
+    echo "Limine config not found, skipping Limine sync"
+    exit 0
   fi
-  
-  # Try existing limine.conf entries
-  if [[ -z $CMDLINE ]]; then
-    for cfg in /boot/limine.conf /boot/limine/limine.conf /boot/EFI/limine/limine.conf /boot/EFI/BOOT/limine.conf /boot/EFI/arch-limine/limine.conf; do
-      if [[ -f $cfg ]]; then
-        CMDLINE=$(grep "^[[:space:]]*CMDLINE=" "$cfg" | head -1 | sed 's/^[[:space:]]*CMDLINE=//' | sed 's/\(quiet\|splash\|loglevel=[0-9]*\)//g' | xargs)
-        [[ -n $CMDLINE ]] && break
-      fi
-    done
-  fi
-  
-  # Fall back to /proc/cmdline
-  if [[ -z $CMDLINE ]]; then
-    CMDLINE=$(cat /proc/cmdline | sed 's/\(quiet\|splash\|loglevel=[0-9]*\)//g' | xargs)
-  fi
+
+  CMDLINE=$(grep "^[[:space:]]*cmdline:" "${limine_config:-/dev/null}" | head -1 | sed 's/^[[:space:]]*cmdline:[[:space:]]*//')
 
   # Create or update /etc/default/limine with Omarchy settings
   if [[ $IS_CACHYOS == true ]]; then
@@ -66,54 +62,28 @@ EOF
     if ! grep -q "^SNAPSHOT_FORMAT_CHOICE=" /etc/default/limine; then
       echo 'SNAPSHOT_FORMAT_CHOICE=5' | sudo tee -a /etc/default/limine >/dev/null
     fi
-  elif [[ ! -f /etc/default/limine ]]; then
-    # No existing config, create from template
-    sudo cp $OMARCHY_PATH/default/limine/default.conf /etc/default/limine
+  else
+    # Non-CachyOS: always overwrite from template (matches master branch behavior)
+    sudo cp "$OMARCHY_PATH/default/limine/default.conf" /etc/default/limine
     sudo sed -i "s|@@CMDLINE@@|$CMDLINE|g" /etc/default/limine
-    
+
     # Remove UKI settings on non-EFI systems
     if [[ -z $EFI ]]; then
       sudo sed -i '/^ENABLE_UKI=/d; /^ENABLE_LIMINE_FALLBACK=/d' /etc/default/limine
-    fi
-  else
-    # Existing config, merge Omarchy settings
-    echo "Merging Omarchy settings into existing /etc/default/limine..."
-    
-    # Update or add cmdline (preserve existing, just ensure quiet splash)
-    if ! grep -q "quiet splash" /etc/default/limine; then
-      sudo sed -i '/^KERNEL_CMDLINE\[default\]+=/d' /etc/default/limine
-      echo 'KERNEL_CMDLINE[default]+="quiet splash"' | sudo tee -a /etc/default/limine >/dev/null
-    fi
-    
-    # Add Omarchy branding if not present
-    if ! grep -q "^TARGET_OS_NAME=" /etc/default/limine; then
-      echo 'TARGET_OS_NAME="Omarchy"' | sudo tee -a /etc/default/limine >/dev/null
-    fi
-    
-    # Add UKI settings for EFI systems
-    if [[ -n $EFI ]]; then
-      if ! grep -q "^ENABLE_UKI=" /etc/default/limine; then
-        echo 'ENABLE_UKI=yes' | sudo tee -a /etc/default/limine >/dev/null
-      fi
-      if ! grep -q "^CUSTOM_UKI_NAME=" /etc/default/limine; then
-        echo 'CUSTOM_UKI_NAME="omarchy"' | sudo tee -a /etc/default/limine >/dev/null
-      fi
-      if ! grep -q "^ENABLE_LIMINE_FALLBACK=" /etc/default/limine; then
-        echo 'ENABLE_LIMINE_FALLBACK=yes' | sudo tee -a /etc/default/limine >/dev/null
-      fi
-    fi
-    
-    # Add snapshot settings if not present
-    if ! grep -q "^MAX_SNAPSHOT_ENTRIES=" /etc/default/limine; then
-      echo 'MAX_SNAPSHOT_ENTRIES=5' | sudo tee -a /etc/default/limine >/dev/null
-    fi
-    if ! grep -q "^SNAPSHOT_FORMAT_CHOICE=" /etc/default/limine; then
-      echo 'SNAPSHOT_FORMAT_CHOICE=5' | sudo tee -a /etc/default/limine >/dev/null
     fi
   fi
 
   # Let limine-update regenerate /boot/limine.conf based on /etc/default/limine
   # Don't overwrite the existing limine.conf - preserve CachyOS styling
+  if [[ $IS_CACHYOS != true ]]; then
+    # Remove any non-standard limine.conf locations (archinstall may place it elsewhere)
+    for cfg in /boot/limine/limine.conf /boot/EFI/limine/limine.conf /boot/EFI/BOOT/limine.conf /boot/EFI/arch-limine/limine.conf; do
+      [[ -f $cfg ]] && sudo rm "$cfg"
+    done
+
+    # Overwrite /boot/limine.conf with Omarchy theme; limine-update will append boot entries
+    sudo cp "$OMARCHY_PATH/default/limine/limine.conf" /boot/limine.conf
+  fi
 
   # Match Snapper configs if not installing from the ISO
   if [[ -z ${OMARCHY_CHROOT_INSTALL:-} ]]; then
