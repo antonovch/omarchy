@@ -85,6 +85,7 @@ catch_errors() {
   local exit_code=$?
 
   stop_log_output
+  stop_sudo_keepalive
   restore_outputs
 
   clear_logo

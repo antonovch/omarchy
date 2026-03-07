@@ -52,6 +52,24 @@ stop_log_output() {
   fi
 }
 
+start_sudo_keepalive() {
+  (
+    while true; do
+      sudo -v 2>/dev/null || true
+      sleep 60
+    done
+  ) &
+  sudo_keepalive_pid=$!
+}
+
+stop_sudo_keepalive() {
+  if [[ -n ${sudo_keepalive_pid:-} ]]; then
+    kill $sudo_keepalive_pid 2>/dev/null || true
+    wait $sudo_keepalive_pid 2>/dev/null || true
+    unset sudo_keepalive_pid
+  fi
+}
+
 start_install_log() {
   sudo touch "$OMARCHY_INSTALL_LOG_FILE"
   sudo chmod 666 "$OMARCHY_INSTALL_LOG_FILE"
@@ -60,10 +78,12 @@ start_install_log() {
 
   echo "=== Omarchy Installation Started: $OMARCHY_START_TIME ===" >>"$OMARCHY_INSTALL_LOG_FILE"
   start_log_output
+  start_sudo_keepalive
 }
 
 stop_install_log() {
   stop_log_output
+  stop_sudo_keepalive
   show_cursor
 
   if [[ -n ${OMARCHY_INSTALL_LOG_FILE:-} ]]; then

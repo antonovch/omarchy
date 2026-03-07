@@ -38,7 +38,7 @@ ensure_yay() {
 
 if omarchy-pkg-missing "$@"; then
   ensure_yay || exit 1
-  yay -S --noconfirm --needed "$@" || exit 1
+  yay -S --noconfirm --needed --sudoflags '-n' "$@" || exit 1
 fi
 
 for pkg in "$@"; do
