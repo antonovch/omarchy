@@ -2,7 +2,42 @@
 
 # Add the named packages to the system from the AUR if they're missing. Returns false if it couldn't be done.
 
+ensure_yay() {
+  if omarchy-cmd-present yay; then
+    return 0
+  fi
+
+  omarchy-pkg-add base-devel git || return 1
+
+  build_dir=$(mktemp -d)
+  if [[ -z $build_dir ]]; then
+    return 1
+  fi
+
+  if ! git clone --depth 1 https://aur.archlinux.org/yay.git "$build_dir/yay"; then
+    rm -rf "$build_dir"
+    return 1
+  fi
+
+  if ! pushd "$build_dir/yay" >/dev/null; then
+    rm -rf "$build_dir"
+    return 1
+  fi
+
+  if ! makepkg -si --noconfirm --needed; then
+    popd >/dev/null || true
+    rm -rf "$build_dir"
+    return 1
+  fi
+
+  popd >/dev/null || true
+  rm -rf "$build_dir"
+
+  omarchy-cmd-present yay
+}
+
 if omarchy-pkg-missing "$@"; then
+  ensure_yay || exit 1
   yay -S --noconfirm --needed "$@" || exit 1
 fi
 
