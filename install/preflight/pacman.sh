@@ -3,8 +3,8 @@ if [[ -n ${OMARCHY_ONLINE_INSTALL:-} ]]; then
   omarchy-pkg-add base-devel
 
   # Configure pacman
-  channel=${OMARCHY_CHANNEL:-"stable"}
-  SRC_CONF="$OMARCHY_PATH/default/pacman/pacman-$channel.conf"
+  channel=${OMARCHY_MIRROR:-"stable"}
+  SRC_CONF="$OMARCHY_PATH/default/pacman/pacman.conf"
   SRC_MIRROR="$OMARCHY_PATH/default/pacman/mirrorlist-$channel"
 
   REFRESH_SCRIPT="$OMARCHY_PATH/bin/omarchy-refresh-pacman"

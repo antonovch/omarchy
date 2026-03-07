@@ -11,7 +11,7 @@ if [[ $channel != "stable" && $channel != "rc" && $channel != "edge" ]]; then
 fi
 
 OMARCHY_PATH="$HOME/.local/share/omarchy"
-SRC_CONF="$OMARCHY_PATH/default/pacman/pacman-$channel.conf"
+SRC_CONF="$OMARCHY_PATH/default/pacman/pacman.conf"
 SRC_MIRROR="$OMARCHY_PATH/default/pacman/mirrorlist-$channel"
 
 echo "Setting Omarchy pacman channel to: $channel"

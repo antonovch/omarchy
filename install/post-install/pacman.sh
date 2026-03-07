@@ -1,5 +1,5 @@
 # Configure pacman via the centralized refresh script
-channel=${OMARCHY_CHANNEL:-"stable"}
+channel=${OMARCHY_MIRROR:-"stable"}
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 REFRESH_SCRIPT="$REPO_ROOT/bin/omarchy-refresh-pacman"
 
