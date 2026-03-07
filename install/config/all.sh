@@ -21,6 +21,7 @@ run_logged $OMARCHY_INSTALL/config/fast-shutdown.sh
 run_logged $OMARCHY_INSTALL/config/sudoless-asdcontrol.sh
 run_logged $OMARCHY_INSTALL/config/firefox.sh
 run_logged $OMARCHY_INSTALL/config/input-group.sh
+run_logged $OMARCHY_INSTALL/config/makima.sh
 run_logged $OMARCHY_INSTALL/config/omarchy-ai-skill.sh
 run_logged $OMARCHY_INSTALL/config/kernel-modules-hook.sh
 run_logged $OMARCHY_INSTALL/config/powerprofilesctl-rules.sh
@@ -34,8 +35,10 @@ run_logged $OMARCHY_INSTALL/config/hardware/usb-autosuspend.sh
 run_logged $OMARCHY_INSTALL/config/hardware/ignore-power-button.sh
 run_logged $OMARCHY_INSTALL/config/hardware/legacy-gpu-terminal.sh
 run_logged $OMARCHY_INSTALL/config/hardware/nvidia.sh
+run_logged $OMARCHY_INSTALL/config/hardware/intel.sh
 run_logged $OMARCHY_INSTALL/config/hardware/vulkan.sh
 run_logged $OMARCHY_INSTALL/config/hardware/fix-intel-firefox-dmabuf.sh
+run_logged $OMARCHY_INSTALL/config/hardware/fix-intel-panther-lake-display.sh
 run_logged $OMARCHY_INSTALL/config/hardware/fix-f13-amd-audio-input.sh
 run_logged $OMARCHY_INSTALL/config/hardware/fix-bcm43xx.sh
 run_logged $OMARCHY_INSTALL/config/hardware/fix-apple-spi-keyboard.sh
