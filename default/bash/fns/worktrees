@@ -1,4 +1,9 @@
 # Create a new worktree and branch from within current git directory.
+# Avoid zsh alias collisions when this file is sourced: remove any
+# existing aliases that would interfere with the function names.
+unalias ga 2>/dev/null || true
+unalias gd 2>/dev/null || true
+
 ga() {
   if [[ -z "$1" ]]; then
     echo "Usage: ga [branch name]"
