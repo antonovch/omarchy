@@ -28,7 +28,6 @@ omarchy-pkg-aur-add facetimehd-firmware facetimehd-dkms-git
 if [[ $product_name =~ MacBook[89],1|MacBook10,1|MacBookPro13,[123]|MacBookPro14,[123] ]]; then
   echo "Configuring applespi keyboard parameters..."
   cat <<EOF | sudo tee /etc/modprobe.d/applespi.conf >/dev/null
-# Apple SPI keyboard settings for Intel MacBooks
 options applespi fnmode=2
 options applespi fnremap=1
 options applespi iso_layout=0
