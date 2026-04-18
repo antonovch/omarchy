@@ -93,6 +93,7 @@ if [[ $ICON_REF =~ ^https?:// ]]; then
   fi
 else
   ICON_PATH="$ICON_DIR/$ICON_REF"
+  ICON_URL="$ICON_PATH"
 fi
 
 mkdir -p ~/.local/share/mime/packages
