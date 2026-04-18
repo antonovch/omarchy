@@ -9,7 +9,7 @@ fi
 
 # Ensure walker service is running
 if ! pgrep -f "walker --gapplication-service" > /dev/null; then
-  setsid uwsm-app -- walker --gapplication-service &
+  setsid uwsm-app -- env GSK_RENDERER=cairo walker --gapplication-service &
 fi
 
 WALKER_THEME=$(grep 'theme = ' "$HOME/.config/walker/config.toml" | sed 's/.*=\s* "\(.*\)".*/\1/')
