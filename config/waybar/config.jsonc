@@ -90,17 +90,11 @@
     "on-click": "omarchy-launch-or-focus-tui btop",
     "on-click-right": "alacritty"
   },
-  "clock#horizontal": {
-    "format": "{:L%A %H:%M}",
+  "clock": {
+    "format": "{:L%a %d %b %H:%M}",
     "format-alt": "{:L%d %B W%V %Y}",
     "tooltip": false,
     "locale": "en_US.UTF-8",
-    "on-click-right": "omarchy-launch-floating-terminal-with-presentation omarchy-tz-select"
-  },
-  "clock#vertical": {
-    "format": "{:%H\n  —\n%M}",
-    "format-alt": "{:L%d %B W%V %Y}",
-    "tooltip": false,
     "on-click-right": "omarchy-launch-floating-terminal-with-presentation omarchy-tz-select"
   },
   "custom/weather": {
@@ -175,7 +169,7 @@
   },
   "group/center": {
     "orientation": "horizontal",
-    "modules": ["clock#horizontal", "clock#vertical", "custom/weather", "custom/update", "custom/voxtype", "custom/screenrecording-indicator", "custom/idle-indicator", "custom/notification-silencing-indicator"]
+    "modules": ["clock", "custom/update", "custom/voxtype", "custom/screenrecording-indicator", "custom/idle-indicator", "custom/notification-silencing-indicator"]
   },
   "group/expand-icons": {
     "orientation": "inherit",
