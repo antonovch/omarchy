@@ -46,10 +46,13 @@ hl.config({
 })
 
 -- Built-in MacBook keyboard: keep native Mac layout (no Alt/Super swap).
-hl.device("apple-spi-keyboard", {
-  kb_layout = "us,ua",
-  kb_options = "grp:caps_toggle,apple:alupckeys",
-})
+-- Note: hl.device() is not available in omarchy's hl API
+-- TODO: Configure per-device input via alternative method if needed
+-- hl.device({
+--   name = "apple-spi-keyboard",
+--   kb_layout = "us,ua",
+--   kb_options = "grp:caps_toggle,apple:alupckeys",
+-- })
 
 -- Scroll nicely in the terminal.
 hl.window_rule({ match = { class = "(Alacritty|kitty)" }, scroll_touchpad = 1.5 })
@@ -64,4 +67,6 @@ hl.gesture({ fingers = 3, direction = "horizontal", action = "workspace" })
 -- hl.gesture({ fingers = 3, direction = "right", action = function() hl.dispatch(hl.dsp.focus({ direction = "r" })) end })
 
 -- Enable per-window layout switching.
-hl.exec_once("/usr/bin/hyprland-per-window-layout")
+hl.on("hyprland.start", function()
+  hl.exec_cmd("/usr/bin/hyprland-per-window-layout")
+end)
