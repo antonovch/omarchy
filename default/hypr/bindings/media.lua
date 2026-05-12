@@ -7,8 +7,23 @@ hl.bind("XF86MonBrightnessUp", hl.dsp.exec_cmd("omarchy-brightness-display +5%")
 hl.bind("XF86MonBrightnessDown", hl.dsp.exec_cmd("omarchy-brightness-display 5%-"), { locked = true, repeating = true, description = "Brightness down" })
 hl.bind("SHIFT + XF86MonBrightnessUp", hl.dsp.exec_cmd("omarchy-brightness-display 100%"), { locked = true, repeating = true, description = "Brightness maximum" })
 hl.bind("SHIFT + XF86MonBrightnessDown", hl.dsp.exec_cmd("omarchy-brightness-display 1%"), { locked = true, repeating = true, description = "Brightness minimum" })
-hl.bind("XF86KbdBrightnessUp", hl.dsp.exec_cmd("omarchy-brightness-keyboard up"), { locked = true, repeating = true, description = "Keyboard brightness up" })
-hl.bind("XF86KbdBrightnessDown", hl.dsp.exec_cmd("omarchy-brightness-keyboard down"), { locked = true, repeating = true, description = "Keyboard brightness down" })
+-- Keyboard brightness with 10% increments and swayosd feedback
+local kbdBacklightCmd = function(action)
+  return "brightnessctl --device=spi::kbd_backlight set " .. action .. " && omarchy-swayosd-client --custom-progress=$(awk 'BEGIN {print $(brightnessctl --device=spi::kbd_backlight get)/255}') --custom-icon=input-keyboard"
+end
+
+hl.bind("XF86KbdBrightnessDown", hl.dsp.exec_cmd(kbdBacklightCmd("10%-")), { locked = true, repeating = true, description = "Keyboard brightness down" })
+hl.bind("XF86KbdBrightnessUp", hl.dsp.exec_cmd(kbdBacklightCmd("+10%")), { locked = true, repeating = true, description = "Keyboard brightness up" })
+
+-- Keyboard brightness min/max with SHIFT
+hl.bind("SHIFT + XF86KbdBrightnessDown", hl.dsp.exec_cmd(kbdBacklightCmd("0%")), { locked = true, description = "Keyboard brightness minimum" })
+hl.bind("SHIFT + XF86KbdBrightnessUp", hl.dsp.exec_cmd(kbdBacklightCmd("100%")), { locked = true, description = "Keyboard brightness maximum" })
+
+-- Keyboard brightness precise 1% increments with ALT
+hl.bind("ALT + XF86KbdBrightnessDown", hl.dsp.exec_cmd(kbdBacklightCmd("1%-")), { locked = true, repeating = true, description = "Keyboard brightness down precise" })
+hl.bind("ALT + XF86KbdBrightnessUp", hl.dsp.exec_cmd(kbdBacklightCmd("+1%")), { locked = true, repeating = true, description = "Keyboard brightness up precise" })
+
+-- Keyboard backlight toggle (legacy command)
 hl.bind("XF86KbdLightOnOff", hl.dsp.exec_cmd("omarchy-brightness-keyboard cycle"), { locked = true, description = "Keyboard backlight cycle" })
 hl.bind("XF86TouchpadToggle", hl.dsp.exec_cmd("omarchy-toggle-touchpad"), { locked = true, description = "Toggle touchpad" })
 hl.bind("XF86TouchpadOn", hl.dsp.exec_cmd("omarchy-toggle-touchpad on"), { locked = true, description = "Enable touchpad" })
