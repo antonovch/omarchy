@@ -15,6 +15,7 @@ btop
 chromium
 clang
 claude-code
+cliamp
 clipmenu
 cmake
 cups
@@ -26,6 +27,7 @@ dnsmasq
 docker
 docker-buildx
 docker-compose
+dosfstools
 dotnet-runtime-9.0
 dust
 evince
@@ -114,6 +116,7 @@ python-poetry-core
 python-pykeepass
 python-terminaltexteffects
 qt5-wayland
+quickshell
 ripgrep
 ruby
 rust
@@ -132,6 +135,9 @@ swayosd
 system-config-printer
 thunderbird
 tealdeer
+tesseract
+tesseract-data-eng
+tldr
 tree-sitter-cli
 tmux
 tobi-try

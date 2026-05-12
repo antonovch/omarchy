@@ -1,6 +1,12 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# omarchy:summary=Overwrite the package configuration for /etc/pacman with the Omarchy default of using its dedicated mirrors and repositories, then update all packages.
+# omarchy:requires-sudo=true
+
+sudo cp -f /etc/pacman.conf /etc/pacman.conf.bak
+sudo cp -f /etc/pacman.d/mirrorlist /etc/pacman.d/mirrorlist.bak
+
 # Update or append Omarchy pacman config and mirrorlist in an idempotent way.
 # Usage: omarchy-refresh-pacman [stable|rc|edge]
 channel="${1:-stable}"
@@ -47,6 +53,9 @@ else
 fi
 
 sudo cp -f "$SRC_MIRROR" /etc/pacman.d/omarchy-mirrorlist
+
+# Allow user customization of /etc/pacman.conf before the upgrade runs
+omarchy-hook pre-refresh-pacman
 
 # Reset all package DBs and then update
 sudo pacman -Syyuu --noconfirm

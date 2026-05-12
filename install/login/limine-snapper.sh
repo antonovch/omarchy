@@ -33,10 +33,33 @@ EOF
   # Detect boot mode
   [[ -d /sys/firmware/efi ]] && EFI=true
 
-  # Find existing limine.conf to extract cmdline from
-  limine_config=""
-  for cfg in /boot/limine.conf /boot/limine/limine.conf /boot/EFI/limine/limine.conf /boot/EFI/BOOT/limine.conf /boot/EFI/arch-limine/limine.conf; do
-    [[ -f $cfg ]] && limine_config="$cfg" && break
+  # Find config location
+  if [[ -f /boot/EFI/arch-limine/limine.conf ]]; then
+    limine_config="/boot/EFI/arch-limine/limine.conf"
+  elif [[ -f /boot/EFI/BOOT/limine.conf ]]; then
+    limine_config="/boot/EFI/BOOT/limine.conf"
+  elif [[ -f /boot/EFI/limine/limine.conf ]]; then
+    limine_config="/boot/EFI/limine/limine.conf"
+  elif [[ -f /boot/limine/limine.conf ]]; then
+    limine_config="/boot/limine/limine.conf"
+  elif [[ -f /boot/limine.conf ]]; then
+    limine_config="/boot/limine.conf"
+  else
+    limine_config=""
+  fi
+
+  CMDLINE=$(grep "^[[:space:]]*cmdline:" "${limine_config:-/dev/null}" | head -1 | sed 's/^[[:space:]]*cmdline:[[:space:]]*//')
+
+  # Write /etc/default/limine *before* installing limine-mkinitcpio-hook, whose
+  # post-transaction deploy hook runs limine-install and reads this file. Without
+  # it, ESP_PATH falls back to bootctl, which in a chroot prints a warning that
+  # gets captured as the path and trips a spurious "invalid ESP" error.
+  sudo cp $OMARCHY_PATH/default/limine/default.conf /etc/default/limine
+  sudo sed -i "s|@@CMDLINE@@|$CMDLINE|g" /etc/default/limine
+
+  # Append any drop-in kernel cmdline configs (from hardware fix scripts, etc.)
+  for dropin in /etc/limine-entry-tool.d/*.conf; do
+    [ -f "$dropin" ] && cat "$dropin" | sudo tee -a /etc/default/limine >/dev/null
   done
 
   if [[ $IS_CACHYOS != true && -z $limine_config ]]; then
@@ -44,33 +67,10 @@ EOF
     exit 0
   fi
 
-  CMDLINE=$(grep "^[[:space:]]*cmdline:" "${limine_config:-/dev/null}" | head -1 | sed 's/^[[:space:]]*cmdline:[[:space:]]*//')
-
-  # Create or update /etc/default/limine with Omarchy settings
-  if [[ $IS_CACHYOS == true ]]; then
-    # On CachyOS, only apply minimal settings — preserve CachyOS OS name, UKI name, and boot paths
-    echo "CachyOS detected: applying minimal limine settings, preserving CachyOS boot entries..."
-
-    if ! grep -q "quiet splash" /etc/default/limine; then
-      sudo sed -i '/^KERNEL_CMDLINE\[default\]+=/d' /etc/default/limine
-      echo 'KERNEL_CMDLINE[default]+="quiet splash"' | sudo tee -a /etc/default/limine >/dev/null
-    fi
-
-    if ! grep -q "^MAX_SNAPSHOT_ENTRIES=" /etc/default/limine; then
-      echo 'MAX_SNAPSHOT_ENTRIES=5' | sudo tee -a /etc/default/limine >/dev/null
-    fi
-    if ! grep -q "^SNAPSHOT_FORMAT_CHOICE=" /etc/default/limine; then
-      echo 'SNAPSHOT_FORMAT_CHOICE=5' | sudo tee -a /etc/default/limine >/dev/null
-    fi
-  else
-    # Non-CachyOS: always overwrite from template (matches master branch behavior)
-    sudo cp "$OMARCHY_PATH/default/limine/default.conf" /etc/default/limine
-    sudo sed -i "s|@@CMDLINE@@|$CMDLINE|g" /etc/default/limine
-
-    # Remove UKI settings on non-EFI systems
-    if [[ -z $EFI ]]; then
-      sudo sed -i '/^ENABLE_UKI=/d; /^ENABLE_LIMINE_FALLBACK=/d' /etc/default/limine
-    fi
+  # Remove the original config file if it's not /boot/limine.conf, so the deploy
+  # hook doesn't see conflicting configs on the same ESP.
+  if [[ $limine_config != "/boot/limine.conf" ]] && [[ -f $limine_config ]]; then
+    sudo rm "$limine_config"
   fi
 
   # Let limine-update regenerate /boot/limine.conf based on /etc/default/limine
@@ -94,6 +94,8 @@ EOF
       sudo sed -i '/^ENABLE_UKI=/d; /^ENABLE_LIMINE_FALLBACK=/d' /etc/default/limine
     fi
   fi
+
+  sudo pacman -S --noconfirm --needed limine-snapper-sync limine-mkinitcpio-hook
 
   # Only snapshot root — /home is user data; rolling it back loses user work
   if ! sudo snapper list-configs 2>/dev/null | grep -q "root"; then
@@ -126,11 +128,17 @@ fi
 
 echo "mkinitcpio hooks re-enabled"
 
-sudo limine-update
-
-# Verify that limine-update actually added boot entries
+# Installing limine-mkinitcpio-hook above already triggered a full UKI rebuild
+# (via 80-limine-efi-deploy.hook + 90-mkinitcpio-install.hook), which writes the
+# boot entries into /boot/limine.conf. Only fall back to limine-update if those
+# hooks didn't run for some reason — running it unconditionally rebuilds every
+# UKI a second time.
 if ! grep -q "^/+" /boot/limine.conf; then
-  echo "Error: limine-update failed to add boot entries to /boot/limine.conf" >&2
+  sudo limine-update
+fi
+
+if ! grep -q "^/+" /boot/limine.conf; then
+  echo "Error: failed to add boot entries to /boot/limine.conf" >&2
   exit 1
 fi
 
