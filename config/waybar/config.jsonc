@@ -165,7 +165,7 @@
       "transition-duration": 600,
       "children-class": "tray-group-item"
     },
-    "modules": ["custom/expand-icon", "custom/brightness", "custom/filemanager", "tray"]
+    "modules": ["group/expand-icons", "custom/brightness", "custom/filemanager", "tray"]
   },
   "group/center": {
     "orientation": "horizontal",
