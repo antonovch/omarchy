@@ -10,6 +10,7 @@ omarchy-webapp-install "Zoom" https://app.zoom.us/wc/manifest.json https://cdn.j
 omarchy-webapp-install "Omarchy" https://learn.omacom.io/2/the-omarchy-manual https://pbs.twimg.com/profile_images/1960368050223685633/wOkAf1Zb_400x400.jpg
 omarchy-webapp-install "Hyprland" https://wiki.hypr.land/ https://wiki.hypr.land/favicon-dark.svg
 omarchy-webapp-install "Google Maps" https://www.google.com/maps/preview/pwa/manifest "Google Maps.png"
+omarchy-webapp-install "Google Calender" https://calendar.google.com/calendar/manifest.json "Google Calendar.png"
 
 # broken manifest for x.com
 # omarchy-webapp-install "X" https://x.com/manifest.json X.png

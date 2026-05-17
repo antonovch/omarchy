@@ -96,7 +96,7 @@ if [[ $ICON_REF =~ ^https?:// ]]; then
   fi
 else
   ICON_PATH="$ICON_DIR/$ICON_REF"
-  ICON_URL="$ICON_PATH"
+  ICON_URL=""
 fi
 
 mkdir -p ~/.local/share/mime/packages
@@ -130,6 +130,15 @@ fi
 
 DESKTOP_FILE="$HOME/.local/share/applications/$APP_NAME.desktop"
 mv ~/.local/share/applications/FFPWA-$APP_ID.desktop "$DESKTOP_FILE"
+
+# Update icon if we have a local one
+if [[ -n $ICON_PATH && -f $ICON_PATH ]]; then
+  if grep -q "^Icon=" "$DESKTOP_FILE"; then
+    sed -i "s|^Icon=.*|Icon=$ICON_PATH|" "$DESKTOP_FILE"
+  else
+    sed -i "/^Type=Application/a Icon=$ICON_PATH" "$DESKTOP_FILE"
+  fi
+fi
 
 # Add mime types if provided
 if [[ -n $MIME_TYPES ]]; then

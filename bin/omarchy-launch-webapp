@@ -4,10 +4,26 @@
 # omarchy:args=<url>
 
 browser=$(xdg-settings get default-web-browser)
+url=$1
+webapp_name=${2:-}
 
 case $browser in
-google-chrome* | brave* | microsoft-edge* | opera* | vivaldi* | helium*) ;;
-*) browser="chromium.desktop" ;;
+google-chrome* | brave* | microsoft-edge* | opera* | vivaldi* | helium*)
+  exec setsid uwsm-app -- $(sed -n 's/^Exec=\([^ ]*\).*/\1/p' {~/.local,~/.nix-profile,/usr}/share/applications/$browser 2>/dev/null | head -1) --app="$url" "${@:3}"
+  ;;
+firefox*)
+  if [ -n "$webapp_name" ]; then
+    for dir in {~/.local,~/.nix-profile,/usr}/share/applications; do
+      desktop_file="${dir/#\~/$HOME}/${webapp_name}.desktop"
+      if [ -f "$desktop_file" ]; then
+        exec setsid uwsm-app -- "$desktop_file" "${@:3}"
+      fi
+    done
+  fi
+  exec setsid uwsm-app -- firefox "$url" "${@:3}"
+  ;;
+*)
+  browser="chromium.desktop"
+  exec setsid uwsm-app -- $(sed -n 's/^Exec=\([^ ]*\).*/\1/p' {~/.local,~/.nix-profile,/usr}/share/applications/$browser 2>/dev/null | head -1) --app="$url" "${@:3}"
+  ;;
 esac
-
-exec setsid uwsm-app -- $(sed -n 's/^Exec=\([^ ]*\).*/\1/p' {~/.local,~/.nix-profile,/usr}/share/applications/$browser 2>/dev/null | head -1) --app="$1" "${@:2}"
