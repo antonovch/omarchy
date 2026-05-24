@@ -89,6 +89,7 @@ man-db
 mariadb-libs
 mise
 mpv
+mpv-mpris
 nautilus
 nautilus-python
 gnome-disk-utility
@@ -115,6 +116,7 @@ python-pip
 python-poetry-core
 python-pykeepass
 python-terminaltexteffects
+qemu-user-static-binfmt
 qt5-wayland
 quickshell
 ripgrep
