@@ -6,15 +6,16 @@
 browser=$(xdg-settings get default-web-browser)
 url=$1
 webapp_name=${2:-}
+webapp_id=$(echo "$webapp_name" | tr '[:upper:]' '[:lower:]' | tr ' ' '-')
 
 case $browser in
 google-chrome* | brave* | microsoft-edge* | opera* | vivaldi* | helium*)
   exec setsid uwsm-app -- $(sed -n 's/^Exec=\([^ ]*\).*/\1/p' {~/.local,~/.nix-profile,/usr}/share/applications/$browser 2>/dev/null | head -1) --app="$url" "${@:3}"
   ;;
 firefox*)
-  if [ -n "$webapp_name" ]; then
+  if [ -n "$webapp_id" ]; then
     for dir in {~/.local,~/.nix-profile,/usr}/share/applications; do
-      desktop_file="${dir/#\~/$HOME}/${webapp_name}.desktop"
+      desktop_file="${dir/#\~/$HOME}/${webapp_id}.desktop"
       if [ -f "$desktop_file" ]; then
         exec setsid uwsm-app -- "$desktop_file" "${@:3}"
       fi
