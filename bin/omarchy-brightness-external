@@ -1,0 +1,51 @@
+#!/bin/bash
+
+# omarchy:summary=Adjust brightness on the external display with OSD feedback.
+# omarchy:args=<+5%|5%-|100%|1%>
+
+step="${1:-+5%}"
+runtime_dir="${XDG_RUNTIME_DIR:-/tmp}"
+cache_file="$runtime_dir/omarchy-brightness-external"
+lock_file="$runtime_dir/omarchy-brightness-external.lock"
+
+# Drop overlapping key events to prevent overshoot (same pattern as omarchy-brightness-display)
+exec 9>"$lock_file"
+flock -n 9 || exit 0
+
+# Find the external monitor (first non-builtin)
+monitor=$(hyprctl monitors -j 2>/dev/null | python3 -c \
+  "import sys,json; ms=[m['name'] for m in json.load(sys.stdin) if m['name']!='eDP-1']; print(ms[0] if ms else '')")
+[[ -z "$monitor" ]] && exit 0
+
+# Read current brightness: from cache to avoid slow DDC read on every keypress
+if [[ -f "$cache_file" ]]; then
+  current=$(cat "$cache_file")
+else
+  current=$(ddcutil getvcp 10 --terse --sleep-multiplier 0.1 2>/dev/null | awk '{print $4}')
+  [[ -z "$current" ]] && current=50
+fi
+
+# Calculate target
+case "$step" in
+  "+5%")  target=$(( current + 5 )) ;;
+  "5%-")  target=$(( current - 5 )) ;;
+  "100%") target=100 ;;
+  "1%")   target=1 ;;
+  *)      target=${step//%/} ;;
+esac
+(( target > 100 )) && target=100
+(( target < 1  )) && target=1
+
+# Apply and cache
+ddcutil setvcp 10 "$target" --noverify --sleep-multiplier 0.1
+echo "$target" > "$cache_file"
+
+# Show OSD on the external monitor
+progress="$(awk -v p="$target" 'BEGIN{printf "%.2f", p/100}')"
+[[ "$progress" == "0.00" ]] && progress="0.01"
+
+swayosd-client \
+  --monitor "$monitor" \
+  --custom-icon display-brightness-symbolic \
+  --custom-progress "$progress" \
+  --custom-progress-text "$(printf '%3d%%' "$target")"

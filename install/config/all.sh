@@ -25,6 +25,7 @@ run_logged $OMARCHY_INSTALL/config/unmount-fuse.sh
 run_logged $OMARCHY_INSTALL/config/sudoless-asdcontrol.sh
 run_logged $OMARCHY_INSTALL/config/firefox.sh
 run_logged $OMARCHY_INSTALL/config/input-group.sh
+run_logged $OMARCHY_INSTALL/config/i2c-display-control.sh
 run_logged $OMARCHY_INSTALL/config/omarchy-ai-skill.sh
 run_logged $OMARCHY_INSTALL/config/pi.sh
 run_logged $OMARCHY_INSTALL/config/omarchy-toggles.sh

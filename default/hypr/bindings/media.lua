@@ -1,16 +1,30 @@
 -- Volume, brightness, keyboard backlight, and touchpad controls.
-o.bind("XF86AudioRaiseVolume", "Volume up", "omarchy-swayosd-client --output-volume raise", { locked = true, repeating = true })
-o.bind("XF86AudioLowerVolume", "Volume down", "omarchy-swayosd-client --output-volume lower", { locked = true, repeating = true })
+o.bind("XF86AudioRaiseVolume", "Volume up", "omarchy-swayosd-client --output-volume raise",
+  { locked = true, repeating = true })
+o.bind("XF86AudioLowerVolume", "Volume down", "omarchy-swayosd-client --output-volume lower",
+  { locked = true, repeating = true })
 o.bind("XF86AudioMute", "Mute", "omarchy-swayosd-client --output-volume mute-toggle", { locked = true, repeating = true })
 o.bind("XF86AudioMicMute", "Mute microphone", "omarchy-audio-input-mute", { locked = true, repeating = true })
 o.bind("XF86MonBrightnessUp", "Brightness up", "omarchy-brightness-display +5%", { locked = true, repeating = true })
 o.bind("XF86MonBrightnessDown", "Brightness down", "omarchy-brightness-display 5%-", { locked = true, repeating = true })
-o.bind("SHIFT + XF86MonBrightnessUp", "Brightness maximum", "omarchy-brightness-display 100%", { locked = true, repeating = true })
-o.bind("SHIFT + XF86MonBrightnessDown", "Brightness minimum", "omarchy-brightness-display 1%", { locked = true, repeating = true })
+o.bind("SHIFT + XF86MonBrightnessUp", "Brightness maximum", "omarchy-brightness-display 100%",
+  { locked = true, repeating = true })
+o.bind("SHIFT + XF86MonBrightnessDown", "Brightness minimum", "omarchy-brightness-display 1%",
+  { locked = true, repeating = true })
+o.bind("CTRL + XF86MonBrightnessUp", "External brightness up", "omarchy-brightness-external +5%",
+  { locked = true, repeating = true })
+o.bind("CTRL + XF86MonBrightnessDown", "External brightness down", "omarchy-brightness-external 5%-",
+  { locked = true, repeating = true })
+o.bind("SHIFT + CTRL + XF86MonBrightnessUp", "External brightness maximum", "omarchy-brightness-external 100%",
+  { locked = true })
+o.bind("SHIFT + CTRL + XF86MonBrightnessDown", "External brightness minimum", "omarchy-brightness-external 1%",
+  { locked = true })
 
 -- Keyboard brightness with 10% increments and swayosd feedback
 local kbdBacklightCmd = function(action)
-  return "brightnessctl --device=spi::kbd_backlight set " .. action .. " && omarchy-swayosd-client --custom-progress=$(awk 'BEGIN {print $(brightnessctl --device=spi::kbd_backlight get)/255}') --custom-icon=input-keyboard"
+  return "brightnessctl --device=spi::kbd_backlight set " ..
+  action ..
+  " && omarchy-swayosd-client --custom-progress=$(awk 'BEGIN {print $(brightnessctl --device=spi::kbd_backlight get)/255}') --custom-icon=input-keyboard"
 end
 
 o.bind("XF86KbdBrightnessDown", "Keyboard brightness down", kbdBacklightCmd("10%-"), { locked = true, repeating = true })
@@ -21,8 +35,10 @@ o.bind("SHIFT + XF86KbdBrightnessDown", "Keyboard brightness minimum", kbdBackli
 o.bind("SHIFT + XF86KbdBrightnessUp", "Keyboard brightness maximum", kbdBacklightCmd("100%"), { locked = true })
 
 -- Keyboard brightness precise 1% increments with ALT
-o.bind("ALT + XF86KbdBrightnessDown", "Keyboard brightness down precise", kbdBacklightCmd("1%-"), { locked = true, repeating = true })
-o.bind("ALT + XF86KbdBrightnessUp", "Keyboard brightness up precise", kbdBacklightCmd("+1%"), { locked = true, repeating = true })
+o.bind("ALT + XF86KbdBrightnessDown", "Keyboard brightness down precise", kbdBacklightCmd("1%-"),
+  { locked = true, repeating = true })
+o.bind("ALT + XF86KbdBrightnessUp", "Keyboard brightness up precise", kbdBacklightCmd("+1%"),
+  { locked = true, repeating = true })
 
 o.bind("XF86KbdLightOnOff", "Keyboard backlight cycle", "omarchy-brightness-keyboard cycle", { locked = true })
 o.bind("XF86TouchpadToggle", "Toggle touchpad", "omarchy-toggle-touchpad", { locked = true })
@@ -30,10 +46,14 @@ o.bind("XF86TouchpadOn", "Enable touchpad", "omarchy-toggle-touchpad on", { lock
 o.bind("XF86TouchpadOff", "Disable touchpad", "omarchy-toggle-touchpad off", { locked = true })
 
 -- Precise volume and brightness controls.
-o.bind("ALT + XF86AudioRaiseVolume", "Volume up precise", "omarchy-swayosd-client --output-volume +1", { locked = true, repeating = true })
-o.bind("ALT + XF86AudioLowerVolume", "Volume down precise", "omarchy-swayosd-client --output-volume -1", { locked = true, repeating = true })
-o.bind("ALT + XF86MonBrightnessUp", "Brightness up precise", "omarchy-brightness-display +1%", { locked = true, repeating = true })
-o.bind("ALT + XF86MonBrightnessDown", "Brightness down precise", "omarchy-brightness-display 1%-", { locked = true, repeating = true })
+o.bind("ALT + XF86AudioRaiseVolume", "Volume up precise", "omarchy-swayosd-client --output-volume +1",
+  { locked = true, repeating = true })
+o.bind("ALT + XF86AudioLowerVolume", "Volume down precise", "omarchy-swayosd-client --output-volume -1",
+  { locked = true, repeating = true })
+o.bind("ALT + XF86MonBrightnessUp", "Brightness up precise", "omarchy-brightness-display +1%",
+  { locked = true, repeating = true })
+o.bind("ALT + XF86MonBrightnessDown", "Brightness down precise", "omarchy-brightness-display 1%-",
+  { locked = true, repeating = true })
 
 -- Media controls.
 o.bind("XF86AudioNext", "Next track", "omarchy-swayosd-client --playerctl next", { locked = true })
