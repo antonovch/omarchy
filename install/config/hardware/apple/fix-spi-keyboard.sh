@@ -1,7 +1,7 @@
 # Detect MacBook models that need SPI keyboard modules
-product_name="$(cat /sys/class/dmi/id/product_name 2>/dev/null)"
-if [[ $product_name =~ MacBook[89],1|MacBook1[02],1|MacBookPro13,[123]|MacBookPro14,[123] ]]; then
-  echo "Detected MacBook with SPI keyboard"
+if omarchy-hw-macbook-butterfly; then
+  product_name="$(cat /sys/class/dmi/id/product_name 2>/dev/null)"
+  echo "Detected MacBook with SPI keyboard: $product_name"
 
   if pacman -Q linux-cachyos &>/dev/null || pacman -Q linux-cachyos-lto &>/dev/null; then
     sudo pacman -S --noconfirm --needed linux-cachyos-headers
