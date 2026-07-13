@@ -22,3 +22,6 @@ require("default.hypr.toggles")
 
 -- Add any other personal Hyprland configuration below.
 -- o.window("qemu", { workspace = "5" })
+
+-- Restore persisted workspace layout preferences (written by omarchy-hyprland-workspace-layout-toggle)
+pcall(dofile, os.getenv("HOME") .. "/.config/omarchy/workspace-layouts.lua")
