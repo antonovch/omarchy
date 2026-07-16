@@ -5,21 +5,14 @@ if command -v limine &>/dev/null; then
   fi
 
   if [[ $IS_CACHYOS == true ]]; then
-    # CachyOS already handles UKI generation via its own presets; adding
-    # limine-mkinitcpio-hook would produce a second competing UKI entry
-    sudo pacman -S --noconfirm --needed limine-snapper-sync
-  else
-    sudo pacman -S --noconfirm --needed limine-snapper-sync limine-mkinitcpio-hook
-  fi
-
-  if [[ $IS_CACHYOS == true ]]; then
     echo "CachyOS detected: using systemd-based initramfs hooks for improved LUKS support"
     sudo tee /etc/mkinitcpio.conf.d/omarchy_hooks.conf <<EOF >/dev/null
 HOOKS=(base systemd plymouth autodetect microcode modconf kms keyboard sd-vconsole block sd-encrypt filesystems fsck sd-btrfs-overlayfs)
 EOF
   else
-  sudo tee /etc/mkinitcpio.conf.d/omarchy_hooks.conf <<EOF >/dev/null
+    sudo tee /etc/mkinitcpio.conf.d/omarchy_hooks.conf <<EOF >/dev/null
 HOOKS=(base udev plymouth keyboard autodetect microcode modconf kms keymap consolefont block encrypt filesystems fsck btrfs-overlayfs)
+FILES+=(/etc/vconsole.conf)
 EOF
   fi
 
@@ -46,9 +39,8 @@ EOF
 
   CMDLINE=$(grep "^[[:space:]]*cmdline:" "${limine_config:-/dev/null}" | head -1 | sed 's/^[[:space:]]*cmdline:[[:space:]]*//')
 
-  # Create or update /etc/default/limine with Omarchy settings
+  # On CachyOS: apply minimal settings only — preserve CachyOS OS name, UKI name, and boot paths
   if [[ $IS_CACHYOS == true ]]; then
-    # On CachyOS, only apply minimal settings — preserve CachyOS OS name, UKI name, and boot paths
     echo "CachyOS detected: applying minimal limine settings, preserving CachyOS boot entries..."
 
     if ! grep -q "quiet splash" /etc/default/limine; then
@@ -61,15 +53,6 @@ EOF
     fi
     if ! grep -q "^SNAPSHOT_FORMAT_CHOICE=" /etc/default/limine; then
       echo 'SNAPSHOT_FORMAT_CHOICE=5' | sudo tee -a /etc/default/limine >/dev/null
-    fi
-  else
-    # Non-CachyOS: always overwrite from template (matches master branch behavior)
-    sudo cp "$OMARCHY_PATH/default/limine/default.conf" /etc/default/limine
-    sudo sed -i "s|@@CMDLINE@@|$CMDLINE|g" /etc/default/limine
-
-    # Remove UKI settings on non-EFI systems
-    if [[ -z $EFI ]]; then
-      sudo sed -i '/^ENABLE_UKI=/d; /^ENABLE_LIMINE_FALLBACK=/d' /etc/default/limine
     fi
   fi
 
@@ -93,6 +76,16 @@ EOF
     if [[ -z $EFI ]]; then
       sudo sed -i '/^ENABLE_UKI=/d; /^ENABLE_LIMINE_FALLBACK=/d' /etc/default/limine
     fi
+  fi
+
+  # Install packages after writing /etc/default/limine — the mkinitcpio-hook's
+  # post-transaction deploy hook runs limine-install which reads this file.
+  # CachyOS already handles UKI generation via its own presets; adding
+  # limine-mkinitcpio-hook would produce a second competing UKI entry.
+  if [[ $IS_CACHYOS == true ]]; then
+    sudo pacman -S --noconfirm --needed limine-snapper-sync
+  else
+    sudo pacman -S --noconfirm --needed limine-snapper-sync limine-mkinitcpio-hook
   fi
 
   # Only snapshot root — /home is user data; rolling it back loses user work
@@ -126,11 +119,17 @@ fi
 
 echo "mkinitcpio hooks re-enabled"
 
-sudo limine-update
-
-# Verify that limine-update actually added boot entries
+# Installing limine-mkinitcpio-hook above already triggered a full UKI rebuild
+# (via 80-limine-efi-deploy.hook + 90-mkinitcpio-install.hook), which writes the
+# boot entries into /boot/limine.conf. Only fall back to limine-update if those
+# hooks didn't run for some reason — running it unconditionally rebuilds every
+# UKI a second time.
 if ! grep -q "^/+" /boot/limine.conf; then
-  echo "Error: limine-update failed to add boot entries to /boot/limine.conf" >&2
+  sudo limine-update
+fi
+
+if ! grep -q "^/+" /boot/limine.conf; then
+  echo "Error: failed to add boot entries to /boot/limine.conf" >&2
   exit 1
 fi
 
