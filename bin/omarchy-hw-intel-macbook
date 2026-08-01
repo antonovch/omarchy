@@ -1,0 +1,10 @@
+#!/bin/bash
+
+# omarchy:summary=Detect whether the computer is an Intel MacBook without a T2 chip.
+
+# Covers MacBook8-10, MacBookPro9-14, MacBookAir5-7 models (2012-2017).
+# T2 MacBooks are detected separately by install/hardware/apple/fix-t2.sh via PCI ID.
+
+[[ $(cat /sys/class/dmi/id/bios_vendor 2>/dev/null) == "Apple Inc." ]] &&
+  [[ $(cat /sys/class/dmi/id/product_name 2>/dev/null) =~ ^(MacBook([89]|10),|MacBookPro(9|1[0-4]),|MacBookAir[567],) ]] &&
+  ! lspci -nn 2>/dev/null | grep -q "106b:180[12]"

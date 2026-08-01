@@ -1,0 +1,58 @@
+#!/bin/bash
+
+# omarchy:summary=Rebuild the CS8409 audio driver for Intel MacBooks against the running kernel
+# omarchy:requires-sudo=true
+
+set -euo pipefail
+
+REPO_URL="https://github.com/davidjo/snd_hda_macbookpro.git"
+BUILD_DIR="/tmp/snd_hda_macbookpro_build"
+
+echo "==> [1/5] Checking kernel headers..."
+KERNEL_VER="$(uname -r)"
+
+case "$KERNEL_VER" in
+  *-lts) HEADER_PKG="linux-lts-headers" ;;
+  *-zen) HEADER_PKG="linux-zen-headers" ;;
+  *) HEADER_PKG="linux-headers" ;;
+esac
+
+if omarchy-pkg-missing "$HEADER_PKG"; then
+  echo "--> Installing missing headers: $HEADER_PKG"
+  omarchy-pkg-add "$HEADER_PKG" base-devel git
+fi
+
+echo "==> [2/5] Cleaning up old/broken DKMS states..."
+# Remove any broken or registered instances of both naming variations
+sudo dkms remove -m snd-hda-macbookpro -v 0.1 --all 2>/dev/null || true
+sudo dkms remove -m snd_hda_macbookpro -v 0.1 --all 2>/dev/null || true
+sudo rm -rf /var/lib/dkms/snd-hda-macbookpro /var/lib/dkms/snd_hda_macbookpro
+
+echo "==> [3/5] Cloning fresh upstream source..."
+rm -rf "$BUILD_DIR"
+git clone --depth 1 "$REPO_URL" "$BUILD_DIR"
+
+echo "==> [4/5] Building and installing driver via DKMS..."
+cd "$BUILD_DIR"
+sudo ./install.cirrus.driver.sh -i
+
+if dkms status | grep -E "snd.*hda.*macbookpro" | grep -q "installed"; then
+  echo "--> DKMS installation successful"
+else
+  echo "x-> DKMS build failed. Check /var/lib/dkms/ for details."
+  exit 1
+fi
+
+echo "==> [5/5] Reloading audio modules and PipeWire..."
+# Stop the user audio server so kernel modules can be safely unloaded
+systemctl --user stop pipewire.socket pipewire wireplumber 2>/dev/null || true
+
+sudo modprobe -r snd_hda_codec_cs8409 snd_hda_codec_cirrus snd_hda_codec_generic snd_hda_intel 2>/dev/null || true
+sudo modprobe snd-hda-codec-cs8409
+
+systemctl --user start pipewire wireplumber
+
+echo "==> Cleaning up temporary build files..."
+rm -rf "$BUILD_DIR"
+
+echo "==> Audio driver rebuilt and loaded for kernel $KERNEL_VER"
