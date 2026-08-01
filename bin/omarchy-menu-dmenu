@@ -1,0 +1,56 @@
+#!/bin/bash
+
+# omarchy:summary=Read newline-separated options on stdin and print the chosen one
+# omarchy:group=menu
+# omarchy:name=dmenu
+# omarchy:args=[-p prompt] [-- menu args...]
+# omarchy:examples=printf 'a\nb\n' | omarchy menu dmenu -p Pick
+
+# dmenu-compatible front end for omarchy-menu-select, which takes its options as
+# positional arguments. Lets stdin-driven tools (keepmenu, scripts ported from
+# walker --dmenu) keep working against the Quickshell menu.
+
+set -euo pipefail
+
+prompt="Select"
+menu_args=()
+
+while (($#)); do
+  case "$1" in
+    -p|--prompt)
+      if (($# < 2)); then
+        echo "omarchy-menu-dmenu: $1 requires a value" >&2
+        exit 1
+      fi
+      prompt="$2"
+      shift 2
+      ;;
+    --)
+      shift
+      menu_args=("$@")
+      break
+      ;;
+    -h|--help)
+      echo "Usage: omarchy-menu-dmenu [-p prompt] [-- menu args...]" >&2
+      exit 0
+      ;;
+    *)
+      # Ignore unknown dmenu-isms (-i, -l 25, ...) rather than failing: callers
+      # pass flags meant for dmenu/rofi that have no analogue here.
+      shift
+      ;;
+  esac
+done
+
+options=()
+while IFS= read -r line; do
+  [[ -n $line ]] && options+=("$line")
+done
+
+((${#options[@]})) || exit 1
+
+if ((${#menu_args[@]})); then
+  exec omarchy-menu-select "$prompt" "${options[@]}" -- "${menu_args[@]}"
+else
+  exec omarchy-menu-select "$prompt" "${options[@]}"
+fi
