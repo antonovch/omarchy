@@ -4,6 +4,7 @@ run_logged "$OMARCHY_INSTALL/user/git.sh"
 run_logged "$OMARCHY_INSTALL/user/xcompose.sh"
 run_logged "$OMARCHY_INSTALL/user/mise-work.sh"
 
+run_logged "$OMARCHY_INSTALL/user/hardware/apple/fix-intel-macbook.sh"
 run_logged "$OMARCHY_INSTALL/user/hardware/asus/fix-audio-mixer.sh"
 run_logged "$OMARCHY_INSTALL/user/hardware/asus/fix-mic.sh"
 run_logged "$OMARCHY_INSTALL/user/hardware/framework/fix-f13-amd-audio-input.sh"

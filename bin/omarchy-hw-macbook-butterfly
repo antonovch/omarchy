@@ -1,0 +1,5 @@
+#!/bin/bash
+
+# omarchy:summary=Detect 2015-2017 butterfly-keyboard MacBook/MacBookPro models (SPI keyboard, fixed NVMe PCI slot).
+
+[[ $(cat /sys/class/dmi/id/product_name 2>/dev/null) =~ ^(MacBook(8,1|9,1|10,1)|MacBookPro(13|14),[123]) ]]

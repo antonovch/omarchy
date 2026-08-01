@@ -1,0 +1,52 @@
+#!/bin/bash
+
+# Some MacBooks' Thunderbolt controller fails to return from D3cold on
+# resume, wedging both it and the xHCI (USB) controller behind it dead
+# ("device inaccessible", then "HC died; cleaning up" in dmesg). Force a
+# clean PCI unbind before sleep and rebind after, so they re-enumerate
+# fresh on wake instead of resuming a broken PCIe power state.
+#
+# Only devices that share the Thunderbolt host controller's PCI subtree
+# are touched, so a plain built-in USB controller elsewhere on the bus
+# (e.g. serving an external monitor's USB hub) is left alone.
+# See: https://github.com/basecamp/omarchy/discussions/4695
+
+STATE_FILE="/run/omarchy-tb-xhci-unbind.state"
+
+thunderbolt_root() {
+  local tb_path
+  for tb_path in /sys/bus/pci/drivers/thunderbolt/0000:*; do
+    [[ -e $tb_path ]] || continue
+    # Strip the switch port and the thunderbolt device itself, leaving the
+    # shared Thunderbolt host controller ancestor (e.g. .../0000:04:00.0)
+    realpath "$tb_path/../.." 2>/dev/null
+    return
+  done
+}
+
+case "$1" in
+  pre)
+    root=$(thunderbolt_root)
+    [[ -z $root ]] && exit 0
+    : > "$STATE_FILE"
+    for driver in thunderbolt xhci_hcd; do
+      driver_path="/sys/bus/pci/drivers/$driver"
+      [[ -d $driver_path ]] || continue
+      for dev in "$driver_path"/0000:*; do
+        [[ -e $dev ]] || continue
+        dev_path=$(realpath "$dev")
+        [[ $dev_path == "$root"/* || $dev_path == "$root" ]] || continue
+        dev_name="$(basename "$dev")"
+        echo "$driver $dev_name" >>"$STATE_FILE"
+        echo "$dev_name" >"$driver_path/unbind" 2>/dev/null
+      done
+    done
+    ;;
+  post)
+    [[ -f $STATE_FILE ]] || exit 0
+    while read -r driver dev_name; do
+      echo "$dev_name" >"/sys/bus/pci/drivers/$driver/bind" 2>/dev/null
+    done <"$STATE_FILE"
+    rm -f "$STATE_FILE"
+    ;;
+esac
