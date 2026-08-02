@@ -25,8 +25,71 @@ iso2sd() {
     fi
   fi
 
-  sudo dd bs=4M status=progress oflag=sync if="$iso" of="$drive"
-  sudo eject "$drive"
+  sudo sh -c "dd bs=4M status=progress oflag=sync if='$iso' of='$drive' && eject '$drive'"
+}
+
+# Create iso file from sd card
+sd2iso() {
+  if [ $# -ne 2 ]; then
+    echo "Usage: sd2iso <input_device> <output_file>"
+    echo "Example: sd2iso /dev/sda ~/backup-sdcard.iso"
+    echo -e "\nAvailable storage devices:"
+    lsblk -d -o NAME,SIZE | grep -E '^(sd|mm)[a-z]' | awk '{print "/dev/"$1" ("$2")"}'
+    exit 0
+  fi
+  last_partition=$(sudo fdisk -l "$1" | grep "^$1" | tail -1)
+
+  if [ -n "$last_partition" ]; then
+    last_part_device=$(echo "$last_partition" | awk '{print $1}')
+    last_part_start=$(echo "$last_partition" | awk '{print $2}')
+
+    # Check if last partition is ext2/3/4
+    fs_type=$(sudo blkid -o value -s TYPE "$last_part_device" 2>/dev/null)
+
+    if [[ "$fs_type" =~ ^ext[234]$ ]]; then
+      # Unmount if mounted
+      if mountpoint=$(findmnt -n -o TARGET "$last_part_device" 2>/dev/null); then
+        sudo umount "$last_part_device"
+        was_mounted=true
+      fi
+
+      # Check and repair filesystem
+      sudo e2fsck -fy "$last_part_device"
+
+      # Shrink filesystem to minimum
+      sudo resize2fs -M "$last_part_device"
+
+      # Get actual filesystem size in 4K blocks
+      fs_blocks=$(sudo tune2fs -l "$last_part_device" | grep "^Block count:" | awk '{print $3}')
+      fs_block_size=$(sudo tune2fs -l "$last_part_device" | grep "^Block size:" | awk '{print $3}')
+
+      # Calculate size in 512-byte sectors with 500MB buffer
+      fs_size_sectors=$(( (fs_blocks * fs_block_size / 512) + 1024000 ))
+      new_part_end=$(( last_part_start + fs_size_sectors ))
+
+      # Shrink partition
+      sudo parted -s "$1" resizepart $(echo "$last_part_device" | grep -o '[0-9]*$') ${new_part_end}s
+
+      # Remount if it was mounted
+      if [ "$was_mounted" = true ]; then
+        sudo mount "$last_part_device" "$mountpoint"
+      fi
+
+      # Copy up to new end with 100MB margin
+      safe_sector=$((new_part_end + 204800))
+      count_blocks=$((safe_sector / 8))
+      sudo sh -c "dd bs=4096 count=$count_blocks status=progress if='$1' of='$2' && chown $(id -u):$(id -g) '$2'"
+    else
+      # Non-ext filesystem, use original end
+      last_partition_end=$(echo "$last_partition" | awk '{print $3}')
+      safe_sector=$((last_partition_end + 204800))
+      count_blocks=$((safe_sector / 8))
+      sudo sh -c "dd bs=4096 count=$count_blocks status=progress if='$1' of='$2' && chown $(id -u):$(id -g) '$2'"
+    fi
+  else
+    # No partitions found, copy entire device
+    sudo sh -c "dd bs=4096 status=progress if='$1' of='$2' && chown $(id -u):$(id -g) '$2'"
+  fi
 }
 
 # Format an entire drive for a single partition using exFAT
