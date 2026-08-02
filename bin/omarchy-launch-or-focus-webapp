@@ -10,6 +10,8 @@ fi
 
 WINDOW_PATTERN="$1"
 shift
-LAUNCH_COMMAND="omarchy-launch-webapp $@"
+# Pass the pattern on as the web app name too: it is the binding description, so
+# it is what omarchy-launch-webapp needs to resolve a firefoxpwa site by name.
+LAUNCH_COMMAND="omarchy-launch-webapp $(printf '%q' "$1") $(printf '%q' "$WINDOW_PATTERN") ${*:2}"
 
 exec omarchy-launch-or-focus "$WINDOW_PATTERN" "$LAUNCH_COMMAND"

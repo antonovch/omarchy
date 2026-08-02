@@ -1,13 +1,75 @@
 #!/bin/bash
 
 # omarchy:summary=Launch a URL as a web app in the default supported browser
-# omarchy:args=<url>
+# omarchy:args=<url> [name]
 
 browser=$(xdg-settings get default-web-browser)
+url="$1"
+name="${2:-}"
+
+launch_chromium_app() {
+  local desktop="$1"
+  shift
+  exec setsid uwsm-app -- \
+    $(sed -n 's/^Exec=\([^ ]*\).*/\1/p' {~/.local,~/.nix-profile,/usr}/share/applications/$desktop 2>/dev/null | head -1) \
+    --app="$url" "$@"
+}
+
+# Chromium's --app has no Firefox equivalent, so Firefox web apps go through
+# firefoxpwa. Resolve the site by name first (the binding description), then by
+# host, because a site's manifest URL often differs from the URL the binding
+# passes (youtube.com vs www.youtube.com, maps.google.com vs www.google.com/maps).
+firefoxpwa_site_id() {
+  local want_host="${url#*://}"
+  want_host="${want_host%%/*}"
+  want_host="${want_host#www.}"
+
+  # A site can be registered more than once (repeated installs leave older
+  # profiles behind). The .desktop files are the source of truth for which copy
+  # is the live one, so prefer a site id that one of them launches; otherwise a
+  # keybinding and the app grid can open different profiles of the same site.
+  local desktop_ids=" "
+  desktop_ids+=$(sed -n 's/^Exec=.*site launch \([0-9A-Z]\{26\}\).*/\1/p' \
+    ~/.local/share/applications/*.desktop 2>/dev/null | tr '\n' ' ')
+
+  local line site_name site_host site_id
+  local by_name="" by_name_live="" by_host="" by_host_live=""
+  while IFS= read -r line; do
+    [[ $line =~ ^-\ (.*):\ (https?://[^\ ]+)\ \(([0-9A-Z]{26})\)$ ]] || continue
+    site_name="${BASH_REMATCH[1]}"
+    site_id="${BASH_REMATCH[3]}"
+    site_host="${BASH_REMATCH[2]#*://}"
+    site_host="${site_host%%/*}"
+    site_host="${site_host#www.}"
+
+    if [[ -n $name && ${site_name,,} == "${name,,}" ]]; then
+      [[ -z $by_name ]] && by_name="$site_id"
+      [[ -z $by_name_live && $desktop_ids == *" $site_id "* ]] && by_name_live="$site_id"
+    elif [[ $site_host == "$want_host" ]]; then
+      [[ -z $by_host ]] && by_host="$site_id"
+      [[ -z $by_host_live && $desktop_ids == *" $site_id "* ]] && by_host_live="$site_id"
+    fi
+  done < <(firefoxpwa profile list 2>/dev/null)
+
+  for candidate in "$by_name_live" "$by_name" "$by_host_live" "$by_host"; do
+    [[ -n $candidate ]] && { printf '%s\n' "$candidate"; return 0; }
+  done
+}
 
 case $browser in
-google-chrome* | brave* | microsoft-edge* | opera* | vivaldi* | helium*) ;;
-*) browser="chromium.desktop" ;;
-esac
+google-chrome* | brave* | microsoft-edge* | opera* | vivaldi* | helium*)
+  launch_chromium_app "$browser" "${@:3}"
+  ;;
+firefox* | zen*)
+  if omarchy-cmd-present firefoxpwa; then
+    site_id=$(firefoxpwa_site_id)
+    [[ -n $site_id ]] && exec setsid uwsm-app -- firefoxpwa site launch "$site_id"
+  fi
 
-exec setsid uwsm-app -- $(sed -n 's/^Exec=\([^ ]*\).*/\1/p' {~/.local,~/.nix-profile,/usr}/share/applications/$browser 2>/dev/null | head -1) --app="$1" "${@:2}"
+  # No matching web app installed: open a normal tab rather than failing.
+  exec setsid uwsm-app -- firefox "$url" "${@:3}"
+  ;;
+*)
+  launch_chromium_app chromium.desktop "${@:3}"
+  ;;
+esac

@@ -68,7 +68,7 @@ local function command_from(value, description)
     if value.focus then
       return o.launch_webapp_sole(description, value.webapp)
     else
-      return o.launch_webapp(value.webapp)
+      return o.launch_webapp(value.webapp, description)
     end
   elseif value.tui then
     if value.focus then
@@ -119,7 +119,13 @@ function o.launch_on_start(command)
   o.exec_on_start(o.launch(command))
 end
 
-function o.launch_webapp(url)
+-- The name lets omarchy-launch-webapp match a firefoxpwa site whose manifest
+-- host differs from the URL. Chromium ignores it.
+function o.launch_webapp(url, name)
+  if name then
+    return "omarchy-launch-webapp " .. shell_quote(url) .. " " .. shell_quote(name)
+  end
+
   return "omarchy-launch-webapp " .. shell_quote(url)
 end
 
