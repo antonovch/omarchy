@@ -46,4 +46,6 @@ create)
 restore)
   sudo limine-snapper-restore
   ;;
+delete)
+  sudo snapper -c "$config" delete 0
 esac

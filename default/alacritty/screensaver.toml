@@ -1,5 +1,6 @@
 [colors.primary]
 background = "0x000000"
+foreground = "#FFFFFF"
 
 [colors.cursor]
 cursor = "0x000000"
@@ -8,4 +9,7 @@ cursor = "0x000000"
 size = 18.0
 
 [window]
-opacity = 1.0
+padding.x = 0
+padding.y = 0
+decorations = "none"
+opacity = 0.0
