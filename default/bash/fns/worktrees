@@ -1,4 +1,9 @@
 # Create a new worktree and branch from within current git directory.
+# oh-my-zsh's git plugin defines ga and gd as aliases, and in zsh an alias is
+# resolved before a same-named function, so drop them before defining ours.
+unalias ga 2>/dev/null || true
+unalias gd 2>/dev/null || true
+
 ga() {
   if [[ -z "$1" ]]; then
     echo "Usage: ga [branch name]"
