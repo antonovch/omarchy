@@ -30,6 +30,19 @@ refresh_running_browser() {
   fi
 }
 
+# Firefox takes a whole extension rather than a theme colour, so it is driven by
+# theme id from the theme's firefox.theme instead of the chromium.theme colour.
+if omarchy-cmd-present firefox; then
+  FIREFOX_THEME=$HOME/.local/state/omarchy/current/theme/firefox.theme
+
+  if [[ -f $FIREFOX_THEME ]]; then
+    THEME_ID=$(<"$FIREFOX_THEME")
+    # Backgrounded: a running Firefox answers over the socket, but a stopped one
+    # makes this wait on socat's timeout.
+    [[ -n $THEME_ID ]] && omarchy-theme-firefox-set "$THEME_ID" &
+  fi
+fi
+
 set_browser_policy /etc/chromium/policies/managed
 refresh_running_browser chromium chromium
 

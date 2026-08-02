@@ -1,0 +1,40 @@
+#!/bin/bash
+
+# omarchy:summary=Switch the active Firefox theme via the theme-switcher extension
+# omarchy:args=<light|dark|toggle|theme-id>
+# omarchy:examples=omarchy theme firefox set dark | omarchy-theme-firefox-set '{cebd391d-f568-473f-bb6e-698d08ec81ec}'
+
+set -euo pipefail
+
+if (($# < 1)); then
+  echo "Usage: omarchy-theme-firefox-set <light|dark|toggle|theme-id>" >&2
+  exit 1
+fi
+
+CMD="$1"
+SOCK="${XDG_RUNTIME_DIR:-$HOME/.local/run}/firefox-theme-switcher.sock"
+STATE_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/firefox-theme-switcher"
+STATE_FILE="$STATE_DIR/state.json"
+
+case "$CMD" in
+  dark | light | toggle)
+    MSG=$(jq -nc --arg cmd "$CMD" '{"cmd":$cmd}')
+    ;;
+  *)
+    MSG=$(jq -nc --arg id "$CMD" '{"cmd":"applyThemeId","themeId":$id}')
+    ;;
+esac
+
+# Prefer the live socket the native messaging host binds while Firefox runs.
+if [[ -S $SOCK ]]; then
+  if omarchy-cmd-present socat; then
+    printf '%s\n' "$MSG" | socat -T3 - UNIX-CONNECT:"$SOCK" 2>/dev/null && exit 0
+  elif omarchy-cmd-present ncat; then
+    printf '%s\n' "$MSG" | ncat -U -w3 "$SOCK" 2>/dev/null && exit 0
+  fi
+fi
+
+# Firefox isn't running (or the send failed), so leave the theme for the host to
+# pick up and apply at next startup.
+mkdir -p "$STATE_DIR"
+printf '%s\n' "$MSG" >"$STATE_FILE"
