@@ -3,6 +3,7 @@ run_logged "$OMARCHY_INSTALL/user/chromium.sh"
 run_logged "$OMARCHY_INSTALL/user/git.sh"
 run_logged "$OMARCHY_INSTALL/user/xcompose.sh"
 run_logged "$OMARCHY_INSTALL/user/keepmenu.sh"
+run_logged "$OMARCHY_INSTALL/user/firefox.sh"
 run_logged "$OMARCHY_INSTALL/user/mise-work.sh"
 
 run_logged "$OMARCHY_INSTALL/user/hardware/apple/fix-intel-macbook.sh"
