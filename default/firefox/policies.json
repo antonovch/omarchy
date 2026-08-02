@@ -1,5 +1,44 @@
 {
   "policies": {
+    "DisableTelemetry": true,
+    "DisableFirefoxStudies": true,
+    "DisablePocket": true,
+    "DontCheckDefaultBrowser": true,
+    "NetworkPrediction": false,
+    "SearchSuggestEnabled": false,
+    "PostQuantumKeyAgreementEnabled": true,
+    "OfferToSaveLogins": false,
+    "PasswordManagerEnabled": false,
+    "HttpsOnlyMode": "enabled",
+    "EnableTrackingProtection": {
+      "Value": true,
+      "Locked": false,
+      "Cryptomining": true,
+      "Fingerprinting": true,
+      "EmailTracking": true
+    },
+    "FirefoxSuggest": {
+      "WebSuggestions": false,
+      "SponsoredSuggestions": false,
+      "ImproveSuggest": false
+    },
+    "UserMessaging": {
+      "WhatsNew": false,
+      "ExtensionRecommendations": false,
+      "FeatureRecommendations": false,
+      "UrlbarInterventions": false,
+      "SkipOnboarding": true
+    },
+    "DNSOverHTTPS": {
+      "Enabled": true,
+      "ProviderURL": "https://cloudflare-dns.com/dns-query",
+      "Fallback": true,
+      "Locked": false
+    },
+    "SearchEngines": {
+      "Default": "DuckDuckGo",
+      "PreventInstalls": false
+    },
     "Preferences": {
       "apz.overscroll.enabled": {
         "Value": true,
@@ -20,6 +59,93 @@
       "widget.wayland.fractional-scale.enabled": {
         "Value": true,
         "Status": "default"
+      }
+    },
+    "Extensions": {
+      "Install": [
+        "@@THEME_SWITCHER_XPI@@"
+      ]
+    },
+    "ExtensionSettings": {
+      "firefoxpwa@filips.si": {
+        "installation_mode": "normal_recommended",
+        "install_url": "https://addons.mozilla.org/firefox/downloads/file/4537285/pwas_for_firefox-2.16.0.xpi"
+      },
+      "{f5525f34-4102-4f6e-8478-3cf23cfeff7a}": {
+        "installation_mode": "normal_recommended",
+        "install_url": "https://addons.mozilla.org/firefox/downloads/file/3880040/catppuccin-1.0.xpi"
+      },
+      "{c827c446-3d00-4160-a992-3ebcbe6d81a6}": {
+        "installation_mode": "normal_recommended",
+        "install_url": "https://addons.mozilla.org/firefox/downloads/file/3990326/catppuccin_latte_mauve_git-2.0.xpi"
+      },
+      "{0e5c8ff0-b54b-4bd1-b33e-d5e016e066f0}": {
+        "installation_mode": "normal_recommended",
+        "install_url": "https://addons.mozilla.org/firefox/downloads/file/4565364/everforest_dark_medium_theme-2.4.xpi"
+      },
+      "{21ab01a8-2464-4824-bccb-6db15659347e}": {
+        "installation_mode": "normal_recommended",
+        "install_url": "https://addons.mozilla.org/firefox/downloads/file/4503497/gruvbox_material_soft_theme-1.8.xpi"
+      },
+      "{26690e10-862d-456f-8bf2-50117a3cb206}": {
+        "installation_mode": "normal_recommended",
+        "install_url": "https://addons.mozilla.org/firefox/downloads/file/2589656/japan_style_kanagawa_gr_232767-2.0.xpi"
+      },
+      "{f2b832a9-f0f5-4532-934c-74b25eb23fb9}": {
+        "installation_mode": "normal_recommended",
+        "install_url": "https://addons.mozilla.org/firefox/downloads/file/4226379/matte_black_v1-2024.1.24.xpi"
+      },
+      "{f4c9e1d6-6630-4600-ad50-d223eab7f3e7}": {
+        "installation_mode": "normal_recommended",
+        "install_url": "https://addons.mozilla.org/firefox/downloads/file/3849722/nord_firefox-2.41.xpi"
+      },
+      "{820afd08-7271-4f9d-8cec-43211ff42102}": {
+        "installation_mode": "normal_recommended",
+        "install_url": "https://addons.mozilla.org/firefox/downloads/file/4005577/lambo_countach_darkgreen-1.0.xpi"
+      },
+      "{930de1b4-9447-4927-9877-4f7cc369bc57}": {
+        "installation_mode": "normal_recommended",
+        "install_url": "https://addons.mozilla.org/firefox/downloads/file/3880719/monokai_pro_filter_ristretto-1.2.xpi"
+      },
+      "{cebd391d-f568-473f-bb6e-698d08ec81ec}": {
+        "installation_mode": "normal_recommended",
+        "install_url": "https://addons.mozilla.org/firefox/downloads/file/4567102/tokyo_night_dark_theme-2.6.xpi"
+      },
+      "{461f2314-d043-410b-ad9c-069c99baca7e}": {
+        "installation_mode": "normal_recommended",
+        "install_url": "https://addons.mozilla.org/firefox/downloads/file/3842976/htb-1.0.xpi"
+      },
+      "{cb1e6534-4545-429e-9ee6-bc50c22ad5e2}": {
+        "installation_mode": "normal_recommended",
+        "install_url": "https://addons.mozilla.org/firefox/downloads/file/4180413/flexoki_light-1.0.xpi"
+      },
+      "{99bc876d-f100-4bf8-b2a2-30d1d0fd74bd}": {
+        "installation_mode": "normal_recommended",
+        "install_url": "https://addons.mozilla.org/firefox/downloads/file/4251950/seaglass_purple-1.0.xpi"
+      },
+      "{aec36acd-36d9-42ee-8bb1-70d1bffbddf9}": {
+        "installation_mode": "normal_recommended",
+        "install_url": "https://addons.mozilla.org/firefox/downloads/file/4709839/ashfern-1.0.xpi"
+      },
+      "{a7c179f9-1996-45c5-becb-418a6d14f45b}": {
+        "installation_mode": "normal_recommended",
+        "install_url": "https://addons.mozilla.org/firefox/downloads/file/4208343/blue_cobalt-1.0.xpi"
+      },
+      "{ab81efb5-5831-4820-8013-6d868b8aa4fd}": {
+        "installation_mode": "normal_recommended",
+        "install_url": "https://addons.mozilla.org/firefox/downloads/file/3600688/ocean_fox-1.0.5.xpi"
+      },
+      "{9b84b6b4-07c4-4b4b-ba21-394d86f6e9ee}": {
+        "installation_mode": "normal_recommended",
+        "install_url": "https://addons.mozilla.org/firefox/downloads/file/3954735/black21-3.0.2.xpi"
+      },
+      "{a31d09d1-6a8f-4f36-9af1-66d9c1f8979f}": {
+        "installation_mode": "normal_recommended",
+        "install_url": "https://addons.mozilla.org/firefox/downloads/file/2410195/white-2.0.xpi"
+      },
+      "{3308ea09-5238-48ae-9bb7-1c8fb35dff1d}": {
+        "installation_mode": "normal_recommended",
+        "install_url": "https://addons.mozilla.org/firefox/downloads/file/4659889/dark_matte_texture-2.0.xpi"
       }
     }
   }

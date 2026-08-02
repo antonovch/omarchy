@@ -21,11 +21,68 @@ copy_chromium_flags() {
   omarchy-install-chromium-ytdlp
 }
 
+# Apply policies + autoconfig to a Firefox install root (the directory holding
+# the firefox binary), e.g. /usr/lib/firefox or the firefoxpwa runtime. Takes the
+# distribution dir so existing callers keep working.
 setup_firefox_preferences() {
   local distribution_dir="$1"
+  local install_root="${distribution_dir%/distribution}"
+  local xpi="$OMARCHY_PATH/default/firefox/theme-switcher/remote-theme-switcher@local.xpi"
+  # The runtime under $HOME is user-owned; /usr/lib and /opt are not.
+  local as_root="sudo"
+  [[ -w $install_root ]] && as_root=""
 
   setup_policy_directory "$distribution_dir"
-  sudo cp -f "$OMARCHY_PATH/default/firefox/policies.json" "$distribution_dir/policies.json"
+  sed "s|@@THEME_SWITCHER_XPI@@|file://$xpi|" \
+    "$OMARCHY_PATH/default/firefox/policies.json" |
+    $as_root tee "$distribution_dir/policies.json" >/dev/null
+
+  # autoconfig.js points Firefox at firefox.cfg for defaultPref overrides that
+  # the policy schema can't express.
+  $as_root mkdir -p "$install_root/defaults/pref"
+  $as_root cp -f "$OMARCHY_PATH/default/firefox/firefox.cfg" "$install_root/firefox.cfg"
+  $as_root cp -f "$OMARCHY_PATH/default/firefox/autoconfig.js" "$install_root/defaults/pref/autoconfig.js"
+}
+
+# The firefoxpwa runtime is a second, private Firefox that policies in
+# /usr/lib/firefox do not reach, so web apps would otherwise run unhardened and
+# unthemed. Give it the same treatment.
+setup_firefox_pwa() {
+  omarchy-pkg-aur-add firefoxpwa || {
+    echo "Warning: firefoxpwa unavailable; web apps will fall back to Chromium."
+    return 0
+  }
+
+  local runtime_dir="${XDG_DATA_HOME:-$HOME/.local/share}/firefoxpwa/runtime"
+
+  if [[ ! -x $runtime_dir/firefox ]]; then
+    echo "Installing the firefoxpwa runtime..."
+    firefoxpwa runtime install --link 2>/dev/null ||
+      firefoxpwa runtime install ||
+      echo "Warning: could not install the firefoxpwa runtime."
+  fi
+
+  [[ -d $runtime_dir ]] && setup_firefox_preferences "$runtime_dir/distribution"
+}
+
+# Bridge omarchy-theme-firefox-set to the theme-switcher extension. The manifest
+# is shared by every Firefox install for this user, runtime included.
+setup_firefox_theme_switcher() {
+  local host_dir="$HOME/.mozilla/native-messaging-hosts"
+  local host_bin="$HOME/.local/bin/firefox_theme_host.py"
+
+  mkdir -p "$(dirname "$host_bin")" "$host_dir" "$HOME/.config/firefox-theme-switcher"
+  install -m 0755 "$OMARCHY_PATH/default/firefox/theme-switcher/firefox_theme_host.py" "$host_bin"
+
+  cat >"$host_dir/com.local.theme_switcher.json" <<EOF
+{
+  "name": "com.local.theme_switcher",
+  "description": "Bridge to switch Firefox theme from a local UNIX socket",
+  "path": "$host_bin",
+  "type": "stdio",
+  "allowed_extensions": ["remote-theme-switcher@local"]
+}
+EOF
 }
 
 setup_firefox_wayland() {
@@ -76,6 +133,9 @@ firefox)
 
   setup_firefox_preferences /usr/lib/firefox/distribution
   setup_firefox_wayland
+  setup_firefox_theme_switcher
+  setup_firefox_pwa
+  omarchy-theme-set-browser
   announce_browser_installed "Firefox"
   ;;
 zen)
