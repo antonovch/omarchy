@@ -1,18 +1,21 @@
 #!/bin/bash
 
-# Turn off keyboard backlight before hibernate to prevent hang on power-off.
-# The ASUS keyboard controller can block S4 shutdown if LEDs are active.
+# Turn off keyboard backlight before any sleep operation (suspend, hibernate,
+# etc.) and restore it to its prior brightness on wake. Also works around
+# hardware (e.g. some ASUS keyboard controllers) that can hang on hibernate
+# power-off while backlight LEDs are still active.
 
-if [[ $1 == "pre" && $2 == "hibernate" ]]; then
-  device=""
-  for candidate in /sys/class/leds/*kbd_backlight*; do
-    if [[ -e "$candidate" ]]; then
-      device="$(basename "$candidate")"
-      break
-    fi
-  done
-
-  if [[ -n "$device" ]]; then
-    brightnessctl -d "$device" set 0 >/dev/null 2>&1
+device=""
+for candidate in /sys/class/leds/*kbd_backlight*; do
+  if [[ -e "$candidate" ]]; then
+    device="$(basename "$candidate")"
+    break
   fi
-fi
+done
+
+[[ -z $device ]] && exit 0
+
+case "$1" in
+  pre) brightnessctl -sd "$device" set 0 >/dev/null 2>&1 ;;
+  post) brightnessctl -rd "$device" >/dev/null 2>&1 ;;
+esac
