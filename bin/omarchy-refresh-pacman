@@ -5,6 +5,8 @@
 
 sudo cp -f /etc/pacman.conf /etc/pacman.conf.bak
 sudo cp -f /etc/pacman.d/mirrorlist /etc/pacman.d/mirrorlist.bak
+[[ -f /etc/pacman.d/omarchy-mirrorlist ]] &&
+  sudo cp -f /etc/pacman.d/omarchy-mirrorlist /etc/pacman.d/omarchy-mirrorlist.bak
 
 channel="${1:-stable}"
 
@@ -16,8 +18,9 @@ fi
 echo "Setting channel to $channel"
 echo
 
-sudo cp -f "$OMARCHY_PATH/default/pacman/pacman-$channel.conf" /etc/pacman.conf
+sudo cp -f "$OMARCHY_PATH/default/pacman/pacman.conf" /etc/pacman.conf
 sudo cp -f "$OMARCHY_PATH/default/pacman/mirrorlist-$channel" /etc/pacman.d/mirrorlist
+sudo cp -f "$OMARCHY_PATH/default/pacman/omarchy-mirrorlist-$channel" /etc/pacman.d/omarchy-mirrorlist
 
 # Allow user customization of /etc/pacman.conf before the upgrade runs
 omarchy-hook pre-refresh-pacman
