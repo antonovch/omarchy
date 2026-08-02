@@ -10,3 +10,7 @@ omarchy-pkg-add socat || echo "Warning: socat unavailable; Firefox theme changes
 
 # Thunderbird backs the mailto handler that omarchy-finalize-user registers.
 omarchy-pkg-add thunderbird || echo "Warning: thunderbird unavailable; the mailto handler will not resolve."
+
+# Firefox has no --app, so the shipped web apps only get their own windows once
+# each site is registered with firefoxpwa. Idempotent, so reruns are cheap.
+omarchy-webapp-sync

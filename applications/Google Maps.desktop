@@ -1,7 +1,7 @@
 [Desktop Entry]
 Version=1.0
 Name=Google Maps
-Exec=omarchy-launch-webapp https://maps.google.com
+Exec=omarchy-launch-webapp https://maps.google.com "Google Maps"
 Terminal=false
 Type=Application
 Icon=google-maps

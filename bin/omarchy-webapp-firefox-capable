@@ -1,0 +1,14 @@
+#!/bin/bash
+
+# omarchy:summary=Returns true when web apps should be installed as firefoxpwa sites
+# omarchy:hidden=true
+
+# True only when the default browser is Firefox-based and firefoxpwa is usable.
+# Chromium-family browsers get app windows from --app and need no registration.
+
+omarchy-cmd-missing firefoxpwa && exit 1
+
+case "$(xdg-settings get default-web-browser 2>/dev/null)" in
+  firefox* | zen*) exit 0 ;;
+  *) exit 1 ;;
+esac

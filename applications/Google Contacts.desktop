@@ -1,7 +1,7 @@
 [Desktop Entry]
 Version=1.0
 Name=Google Contacts
-Exec=omarchy-launch-webapp https://contacts.google.com/
+Exec=omarchy-launch-webapp https://contacts.google.com/ "Google Contacts"
 Terminal=false
 Type=Application
 Icon=google-contacts

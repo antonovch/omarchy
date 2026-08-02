@@ -128,6 +128,14 @@ else
   ICON_VALUE=$(icon_name_from_ref "$ICON_REF")
 fi
 
+# Chromium gets an app window from --app, but Firefox needs the site registered
+# with firefoxpwa first, or omarchy-launch-webapp can only open a normal tab.
+# Non-fatal: plenty of sites ship no reachable manifest, and a tab still works.
+if [[ -z ${CUSTOM_EXEC:-} ]] && omarchy-webapp-firefox-capable; then
+  omarchy-webapp-register "$APP_NAME" "$APP_URL" "${MANIFEST_URL:-}" ||
+    echo "Note: no web app manifest found for $APP_URL; it will open as a tab."
+fi
+
 # Use custom exec if provided, otherwise default behavior. The name is passed
 # along so omarchy-launch-webapp can match a firefoxpwa site exactly instead of
 # guessing from the URL host, which differs from the manifest host for some sites.

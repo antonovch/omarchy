@@ -1,7 +1,7 @@
 [Desktop Entry]
 Version=1.0
 Name=Discord
-Exec=omarchy-launch-webapp https://discord.com/channels/@me
+Exec=omarchy-launch-webapp https://discord.com/channels/@me "Discord"
 Terminal=false
 Type=Application
 Icon=omarchy-discord

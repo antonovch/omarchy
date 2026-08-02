@@ -1,0 +1,41 @@
+#!/bin/bash
+
+# omarchy:summary=Register a site as a firefoxpwa web app, so it opens in its own window
+# omarchy:args=<name> <url> [manifest-url]
+# omarchy:examples=omarchy webapp register GitHub https://github.com
+
+# Idempotent: does nothing when a site with this name is already installed, so it
+# is safe to call from setup leaves on every run.
+
+set -uo pipefail
+
+name="${1:-}"
+url="${2:-}"
+manifest="${3:-}"
+
+if [[ -z $name || -z $url ]]; then
+  echo "Usage: omarchy-webapp-register <name> <url> [manifest-url]" >&2
+  exit 1
+fi
+
+omarchy-cmd-missing firefoxpwa && exit 1
+
+# Already registered under this name?
+if firefoxpwa profile list 2>/dev/null |
+  grep -qiE "^- ${name//[^[:alnum:] ]/.}: "; then
+  exit 0
+fi
+
+[[ -n $manifest ]] || manifest=$(omarchy-webapp-manifest "$url" 2>/dev/null)
+
+# No manifest means no web app: the caller falls back to opening a tab.
+[[ -n $manifest ]] || exit 1
+
+# --start-url keeps the app opening on the page the caller asked for, which is
+# often not the manifest's own start_url (Google Maps, Discord channel links).
+firefoxpwa site install "$manifest" \
+  --name "$name" \
+  --start-url "$url" \
+  >/dev/null 2>&1 || exit 1
+
+echo "Registered web app: $name"
