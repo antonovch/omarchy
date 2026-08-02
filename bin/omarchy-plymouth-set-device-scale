@@ -1,0 +1,50 @@
+#!/bin/bash
+
+# omarchy:summary=Pin the Plymouth device scale so the boot splash isn't upscaled on HiDPI screens
+# omarchy:args=[--no-rebuild] [scale]
+# omarchy:examples=omarchy plymouth set-device-scale 1
+# omarchy:requires-sudo=true
+
+# Plymouth guesses a device scale of 2 whenever a connector reports a high
+# enough DPI (roughly >1.6x of 135dpi on panels under 20", see
+# ply_get_device_scale). On a retina laptop panel that makes Plymouth render
+# into a half-size logical window and draw the theme's 1x assets at double
+# size, so the splash looks oversized and blurry on the built-in screen while
+# staying crisp on external monitors. The Omarchy theme only ships 1x assets,
+# so pin the scale to 1.
+#
+# plymouthd.conf is baked into the initramfs, so the initramfs is rebuilt
+# unless --no-rebuild is passed (for callers that rebuild it themselves).
+
+rebuild=true
+if [[ $1 == "--no-rebuild" ]]; then
+  rebuild=false
+  shift
+fi
+
+scale="${1:-1}"
+
+if ! [[ $scale =~ ^[0-9]+$ ]]; then
+  echo "Invalid device scale: $scale (expected a positive integer)" >&2
+  exit 1
+fi
+
+conf="/etc/plymouth/plymouthd.conf"
+
+if [[ ! -f $conf ]]; then
+  printf '[Daemon]\nDeviceScale=%s\n' "$scale" | sudo tee "$conf" >/dev/null
+elif grep -q '^DeviceScale=' "$conf"; then
+  sudo sed -i "s/^DeviceScale=.*/DeviceScale=$scale/" "$conf"
+elif grep -q '^\[Daemon\]' "$conf"; then
+  sudo sed -i "0,/^\[Daemon\]/{s/^\[Daemon\]/[Daemon]\nDeviceScale=$scale/}" "$conf"
+else
+  printf '[Daemon]\nDeviceScale=%s\n' "$scale" | sudo tee -a "$conf" >/dev/null
+fi
+
+if [[ $rebuild == true ]]; then
+  if omarchy-cmd-present limine-mkinitcpio; then
+    sudo limine-mkinitcpio
+  else
+    sudo mkinitcpio -P
+  fi
+fi

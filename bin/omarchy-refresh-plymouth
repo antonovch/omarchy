@@ -5,6 +5,7 @@
 
 sudo cp -r "$OMARCHY_PATH/default/plymouth/." /usr/share/plymouth/themes/omarchy/
 sudo plymouth-set-default-theme omarchy
+omarchy-plymouth-set-device-scale --no-rebuild 1
 
 if omarchy-cmd-present limine-mkinitcpio; then
   sudo limine-mkinitcpio
