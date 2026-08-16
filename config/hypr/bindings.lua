@@ -27,7 +27,9 @@ o.bind("SUPER + SHIFT + SLASH", "Passwords", { launch = "keepmenu" })
 o.bind("SUPER + SHIFT + E", "Thunderbird", { launch = "thunderbird" })
 
 -- Web app bindings.
-o.bind("SUPER + SHIFT + A", "ChatGPT", { webapp = "https://chatgpt.com" })
+o.bind("SUPER + SHIFT + A", "ChatGPT", o.cmd_present("chatgpt")
+  and { launch = "chatgpt", focus = "chatgpt" }
+  or { webapp = "https://chatgpt.com" })
 o.bind("SUPER + SHIFT + ALT + A", "Grok", { webapp = "https://grok.com" })
 o.bind("SUPER + SHIFT + CTRL + A", "Claude", { webapp = "https://claude.ai" })
 o.bind("SUPER + SHIFT + Y", "YouTube", { webapp = "https://youtube.com/" })
