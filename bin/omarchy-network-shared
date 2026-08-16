@@ -1,0 +1,95 @@
+#!/bin/bash
+
+# omarchy:summary=Show or set whether wired Ethernet is a WAN client or shares this machine's connection
+# omarchy:group=network
+# omarchy:args=[wan|shared|toggle]
+# omarchy:examples=omarchy network shared | omarchy network shared shared | omarchy network shared toggle
+
+set -euo pipefail
+
+# Shared mode turns the wired port into an uplink for whatever is plugged into
+# it: NetworkManager runs its own dnsmasq for DHCP and DNS and sets up NAT to
+# the machine's other route. WAN mode is the normal DHCP client.
+#
+# This is ipv4.method on the wired profile rather than a systemd-networkd
+# .network file: Omarchy runs NetworkManager, and install/hardware/network.sh
+# actively disables systemd-networkd and retires its DHCP drop-ins so the two
+# cannot compete for the same link.
+
+SHARED_ADDRESS="10.42.0.1/24"
+
+wired_device() {
+  nmcli -t -f DEVICE,TYPE device status 2>/dev/null |
+    awk -F: '$2 == "ethernet" { print $1; exit }'
+}
+
+# The UUID, not the name: nmcli -t escapes a colon inside a connection name,
+# and a UUID never contains one.
+connection_for() {
+  local device="$1" uuid
+
+  uuid=$(nmcli -t -f UUID,DEVICE connection show --active 2>/dev/null |
+    awk -F: -v device="$device" '$2 == device { print $1; exit }')
+
+  # No active profile when the cable is out; fall back to one bound to the device.
+  [[ -n $uuid ]] || uuid=$(nmcli -t -f UUID,DEVICE connection show 2>/dev/null |
+    awk -F: -v device="$device" '$2 == device { print $1; exit }')
+
+  printf '%s\n' "$uuid"
+}
+
+current_mode() {
+  case "$(nmcli -g ipv4.method connection show "$1" 2>/dev/null)" in
+    shared) echo "shared" ;;
+    *) echo "wan" ;;
+  esac
+}
+
+device=$(wired_device)
+if [[ -z $device ]]; then
+  echo "No wired Ethernet device found" >&2
+  exit 1
+fi
+
+connection=$(connection_for "$device")
+if [[ -z $connection ]]; then
+  echo "No NetworkManager profile for $device; connect the wired link once so a profile exists" >&2
+  exit 1
+fi
+
+mode="${1:-}"
+
+# No argument reports, matching omarchy-network-band and the DNS entries the
+# menu drives; toggle is the explicit verb.
+if [[ -z $mode ]]; then
+  current_mode "$connection"
+  exit 0
+fi
+
+if [[ $mode == "toggle" ]]; then
+  if [[ $(current_mode "$connection") == "shared" ]]; then
+    mode=wan
+  else
+    mode=shared
+  fi
+fi
+
+case $mode in
+  shared)
+    # Pinning the address keeps the subnet stable across reconnects; left to
+    # NetworkManager it picks a free 10.42.x.0/24 that can move.
+    nmcli connection modify "$connection" ipv4.method shared ipv4.addresses "$SHARED_ADDRESS"
+    nmcli connection up "$connection" >/dev/null
+    echo "Wired ($device): sharing this machine's connection, DHCP server at ${SHARED_ADDRESS%/*}"
+    ;;
+  wan)
+    # ipv4.addresses has to be cleared or it survives as a static address.
+    nmcli connection modify "$connection" ipv4.method auto ipv4.addresses ""
+    nmcli connection up "$connection" >/dev/null
+    echo "Wired ($device): WAN mode (DHCP client)"
+    ;;
+  *)
+    echo "Usage: omarchy network shared [wan|shared|toggle]" >&2
+    exit 1
+    ;;
+esac
