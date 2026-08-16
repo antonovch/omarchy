@@ -27,4 +27,12 @@
   // Example: replace the default About action by reusing the same id. Existing
   // fields are kept unless overridden.
   // "about": {"icon":"","label":"About","action":"omarchy-launch-or-focus-tui \"zsh -c 'fastfetch; read -k 1'\""},
+
+  // Wired uplink mode, added to the stock Setup > Network submenu. Two checked
+  // rows rather than one toggle, mirroring how setup.network.dns does it, so
+  // the current mode shows without opening anything. Hidden on machines with
+  // no wired port, since the command exits non-zero there.
+  "setup.network.wired": {"icon":"󰈀","label":"Wired","when":"omarchy-network-shared >/dev/null 2>&1"},
+  "setup.network.wired.wan": {"icon":"󰛳","label":"WAN (DHCP client)","checked":"[[ \"$(omarchy-network-shared)\" == \"wan\" ]]","action":"omarchy-network-shared wan"},
+  "setup.network.wired.shared": {"icon":"󰩟","label":"Shared (DHCP + NAT)","checked":"[[ \"$(omarchy-network-shared)\" == \"shared\" ]]","action":"omarchy-network-shared shared"},
 }
