@@ -1,0 +1,33 @@
+#!/bin/bash
+
+# Re-assert this fork's Arch branding after an omarchy-settings upgrade.
+#
+# The branding lives at fixed system paths that omarchy-dev-link cannot shadow,
+# so a package upgrade replaces it. Two different mechanisms do the replacing:
+#
+#   - the logos are extracted by pacman, so NoUpgrade in default/pacman/pacman.conf
+#     already holds them (this hook is the backstop if that file is ever reset);
+#   - /etc/plymouth/plymouthd.conf is written by the omarchy-settings post_upgrade
+#     scriptlet with `cp -f` from /usr/share/omarchy/etc-overrides/, which carries
+#     no DeviceScale line. NoUpgrade cannot guard against a scriptlet, so
+#     DeviceScale=1 has to be restored here.
+#
+# Guarded so a normal update does nothing: omarchy-refresh-plymouth rebuilds the
+# initramfs, which is far too slow to run unconditionally. Not dev-linked means
+# $OMARCHY_PATH is the package tree, both sides match, and this is a no-op.
+
+plymouth_logo="$OMARCHY_PATH/default/plymouth/logo.png"
+sddm_logo="$OMARCHY_PATH/default/sddm/omarchy/logo.png"
+
+# One refresh covers both: omarchy-refresh-plymouth copies the theme, reapplies
+# the device scale, and rebuilds the initramfs that the boot splash comes from.
+if ! cmp -s "$plymouth_logo" /usr/share/plymouth/themes/omarchy/logo.png ||
+  ! grep -qx 'DeviceScale=1' /etc/plymouth/plymouthd.conf; then
+  echo "Restoring Plymouth branding after package upgrade"
+  omarchy-refresh-plymouth
+fi
+
+if ! cmp -s "$sddm_logo" /usr/share/sddm/themes/omarchy/logo.png; then
+  echo "Restoring SDDM branding after package upgrade"
+  omarchy-refresh-sddm
+fi
