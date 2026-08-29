@@ -171,19 +171,76 @@ It detects the channel from `/etc/pacman.d/mirrorlist`. Back up
 `hypr/*.lua` with the stock default (it does keep a `.bak`). Then continue from
 step 3.
 
-### Staying current
+### Updating
 
-The fork sits on the **release** line, not `quattro` (which is upstream's
-development branch). Rebase onto the next tag when it lands:
+`omarchy update` still does everything, exactly as before the 4.0 split:
+
+```
+omarchy-update-dev          git pull --ff-only on this checkout
+omarchy-update-keyring
+omarchy-update-system-pkgs  pacman -Syu
+omarchy-migrate             migrations
+omarchy-hook post-update    restore-branding, etc.
+omarchy-update-aur-pkgs / -mise / -orphan-pkgs
+```
+
+The checkout is pulled *first*, so an `omarchy update` on the second machine picks
+up whatever was pushed from the first. Nothing else is needed day to day.
+
+### Moving onto a new upstream release
+
+Separate and occasional. Do it on one machine, push, and let the other machine
+take it through its next `omarchy update`.
+
+Note the naming: the local branch is `quattro`, but the fork sits on upstream's
+**release** line (the `v4.0.x` tags), *not* on `upstream/quattro`, which is
+upstream's development branch. The two diverged after `v4.0.0`.
 
 ```bash
 git fetch upstream --tags
 git rebase --onto v4.0.2 v4.0.1 quattro
-git log --oneline v4.0.2..HEAD    # must show only local commits
+git log --oneline v4.0.2..HEAD        # must show ONLY local commits
+./test/cli
+omarchy update                        # exercise it before pushing
+git push --force-with-lease
 ```
 
-That last check matters: rebasing from one line onto another silently drags along
-any upstream commits that were in the old base but absent from the new one.
+The `git log` check is not optional. Rebasing from one line onto another silently
+carries along any upstream commit that was in the old base and is absent from the
+new one — moving from `upstream/quattro` onto a release tag once dragged in eight.
+
+`--force-with-lease` is required because the rebase rewrote history.
+
+### After a rebase, on every other machine
+
+The force-push leaves the other machine's checkout on the old history, and
+`omarchy-update-dev` only ever runs `git pull --ff-only`. That fails:
+
+```
+fatal: Not possible to fast-forward, aborting.
+```
+
+`bin/omarchy-update` runs under `set -e`, so this aborts the **whole** update
+before keyring, packages and migrations. Resync first:
+
+```bash
+git -C ~/Projects/omarchy fetch origin
+git -C ~/Projects/omarchy reset --hard origin/quattro
+omarchy update
+```
+
+`reset --hard` is safe here only because all work happens on the machine the
+rebase is done on; a second machine's checkout should carry no local commits.
+
+### Do not let the fork lag a release
+
+`omarchy-migrate` reads `$OMARCHY_PATH/migrations`, and under `omarchy-dev-link`
+that is this checkout — not the package. The same goes for `bin/`, `shell/` and
+`themes/`.
+
+So when 4.0.2 lands, `omarchy update` upgrades the *packages* to 4.0.2 while this
+checkout keeps serving 4.0.1 code, including 4.0.1's migration set: 4.0.2's new
+migrations never run. Rebase promptly rather than deferring it.
 
 ## License
 
