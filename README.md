@@ -178,7 +178,7 @@ development branch). Rebase onto the next tag when it lands:
 
 ```bash
 git fetch upstream --tags
-git rebase --onto v4.0.2 v4.0.1 quattro-port
+git rebase --onto v4.0.2 v4.0.1 quattro
 git log --oneline v4.0.2..HEAD    # must show only local commits
 ```
 
