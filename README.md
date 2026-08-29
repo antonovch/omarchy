@@ -74,6 +74,117 @@ its screenshots are also hosted.
 - [Dual Boot Install](manual/50-dual-boot-install.md)
 - [Unattended Installs](manual/51-unattended-installs.md)
 
+## Running this fork
+
+This is a personal fork. It is **not** an installer, and it is not what gets
+installed — Omarchy 4 is package-backed and ISO-only, so the packages always come
+from upstream. The fork is an overlay switched on afterwards with
+`omarchy-dev-link`, which writes `/etc/omarchy.conf` to point `$OMARCHY_PATH` at
+this checkout instead of `/usr/share/omarchy`.
+
+That is the opposite of the pre-4.0 arrangement, where the checkout at
+`~/.local/share/omarchy` *was* the installation.
+
+### Fresh install
+
+1. **Install stock Omarchy from the ISO.** Reboot. Don't customize anything yet.
+2. **Clone this fork** and check out the branch tracking the current release:
+
+   ```bash
+   git clone git@github.com:antonovch/omarchy ~/Projects/omarchy
+   ```
+
+3. **Point Omarchy at it**, then reboot so the shell, session, systemd and
+   launcher environments all agree:
+
+   ```bash
+   omarchy-dev-link ~/Projects/omarchy
+   ```
+
+4. **Run the fork's install leaves.** A fresh install already ran
+   `omarchy-apply-hardware` and `omarchy-provision-user` out of the *package*,
+   before this checkout existed, so the MacBook fixes, Firefox setup, keepmenu
+   and zsh never executed. Both are idempotent:
+
+   ```bash
+   sudo OMARCHY_PATH="$HOME/Projects/omarchy" omarchy-apply-hardware --install-user "$USER"
+   omarchy-provision-user --force
+   ```
+
+   The `OMARCHY_PATH=` prefix is not optional. `sudo` does not preserve it, and
+   `omarchy-apply-hardware` defaults to `/usr/share/omarchy`, so a bare
+   `sudo omarchy-apply-hardware` silently runs the *packaged* leaves and skips
+   every fix — while the sudoers entry `omarchy-dev-link` installs makes it look
+   like the checkout is in charge. `sudo -i omarchy-apply-hardware …` also works.
+
+5. **Copy the customized configs into `$HOME`.** `/etc/skel` only seeds a brand
+   new user, so an existing `~/.config` file is never replaced by an update:
+
+   ```bash
+   for f in hypr/bindings.lua hypr/hyprland.lua hypr/input.lua hypr/looknfeel.lua \
+            keepmenu/config.ini btop/btop.conf Code/User/keybindings.json \
+            omarchy/extensions/omarchy-menu.jsonc \
+            omarchy/hooks/post-update.d/restore-branding; do
+     omarchy-refresh-config "$f"
+   done
+   ```
+
+   Check what still differs at any time with:
+
+   ```bash
+   for f in $(git diff v4.0.1 --name-only -- config/ | sed 's|^config/||'); do
+     diff -q "config/$f" "$HOME/.config/$f" >/dev/null 2>&1 || echo "$f differs"
+   done
+   ```
+
+6. **Restore the branding** at the package paths `omarchy-dev-link` cannot shadow:
+
+   ```bash
+   omarchy-refresh-plymouth       # also sets the device scale; rebuilds the initramfs
+   omarchy-refresh-sddm
+   omarchy-branding-screensaver reset
+   omarchy-branding-about reset
+   ```
+
+   Kept across upgrades by `NoUpgrade` in `default/pacman/pacman.conf` plus the
+   `post-update.d/restore-branding` hook installed in step 5.
+
+7. **Machine-specific leftovers**, which nothing in the repo can do for you:
+
+   - `~/.config/hypr/monitors.lua` — per-machine, deliberately not in the repo.
+     Restore from a backup or re-tune.
+   - `~/.config/keepmenu/config.ini` — set `database_1`; refreshing that file in
+     step 5 clobbers it, since the repo copy has to stay generic.
+
+### Upgrading an existing pre-4.0 machine
+
+Use the one-shot upgrader instead of steps 1–2. It shipped in 3.8.5, which this
+fork never had, so fetch it from upstream:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/basecamp/omarchy/master/bin/omarchy-upgrade-to-quattro -o /tmp/upg
+less /tmp/upg && bash /tmp/upg
+```
+
+It detects the channel from `/etc/pacman.d/mirrorlist`. Back up
+`~/.config/hypr/monitors.lua` first — the upgrader force-replaces every
+`hypr/*.lua` with the stock default (it does keep a `.bak`). Then continue from
+step 3.
+
+### Staying current
+
+The fork sits on the **release** line, not `quattro` (which is upstream's
+development branch). Rebase onto the next tag when it lands:
+
+```bash
+git fetch upstream --tags
+git rebase --onto v4.0.2 v4.0.1 quattro-port
+git log --oneline v4.0.2..HEAD    # must show only local commits
+```
+
+That last check matters: rebasing from one line onto another silently drags along
+any upstream commits that were in the old base but absent from the new one.
+
 ## License
 
 Omarchy is released under the [MIT License](https://opensource.org/licenses/MIT).
