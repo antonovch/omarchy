@@ -8,9 +8,9 @@ hl.config({
     -- US and Ukrainian layouts, switched with CapsLock.
     kb_layout = "us,ua",
 
-    -- apple:alupckeys suits the built-in MacBook keyboard. Hyprland's Lua API
-    -- exposes no per-device input config, so this applies to every keyboard --
-    -- external boards get the Alt/Super swap too.
+    -- Put Super on the key next to the space bar everywhere. PC keyboards need
+    -- the Alt/Super swap for that; Apple keyboards already have Cmd there, so
+    -- they are exempted below.
     kb_options = "altwin:swap_alt_win,grp:caps_toggle,apple:alupckeys",
 
     -- Change speed of keyboard repeat.
@@ -31,13 +31,23 @@ hl.config({
       clickfinger_behavior = true,
 
       -- Tap-to-click.
-      tap_to_click = true,
+      tap_to_click = false,
 
       -- Control the speed of your scrolling.
       scroll_factor = 0.4,
     },
   },
 })
+
+-- The built-in MacBook keyboard is SPI-attached and driven by applespi, which
+-- unlike hid_apple has no swap_opt_cmd parameter -- only fnmode, fnremap,
+-- iso_layout and touchpad_dimensions. So the /etc/modprobe.d/hid_apple.conf
+-- counter-swap never reaches it, and the global altwin:swap_alt_win above lands
+-- unopposed, putting Super one key too far from the space bar.
+--
+-- Override it per device instead. hid_apple's swap_opt_cmd stays relevant for
+-- external Apple USB/Bluetooth boards, where it cancels the global swap.
+hl.device({ name = "apple-spi-keyboard", kb_options = "grp:caps_toggle,apple:alupckeys" })
 
 -- App-specific touchpad scroll speeds.
 o.window("(Alacritty|kitty|foot)", { scroll_touchpad = 1.5 })
