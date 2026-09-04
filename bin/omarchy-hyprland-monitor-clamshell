@@ -19,6 +19,14 @@ if [[ -n $INTERNAL && ! $INTERNAL =~ ^[A-Za-z0-9._-]+$ ]]; then
   exit 1
 fi
 
+# Set by the "switch:off:Lid Switch" bind. The manual "off" override otherwise
+# only lifts once the external monitor goes away (see enable_internal below),
+# so it can outlive many lid open/close cycles unnoticed while docked.
+# Reopening the lid is a clear enough signal on its own to want the built-in
+# panel back, regardless of what else is plugged in.
+LID_OPENED=0
+[[ ${1:-} == lid-opened ]] && LID_OPENED=1
+
 valid_scale() {
   [[ $1 =~ ^[0-9]+([.][0-9]+)?$ ]]
 }
@@ -211,6 +219,11 @@ enable_internal() {
 
   if [[ -f $CLAMSHELL_FLAG ]]; then
     rm -f "$CLAMSHELL_FLAG"
+    changed=1
+  fi
+
+  if (( LID_OPENED )) && [[ -f $MANUAL_DISABLE_FLAG ]]; then
+    rm -f "$MANUAL_DISABLE_FLAG"
     changed=1
   fi
 
