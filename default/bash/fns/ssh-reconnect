@@ -61,7 +61,7 @@ _ssh_interactive() {
     elif [[ -z $opts_done && $arg == -?* ]]; then
       letters="${arg#-}"
       for ((i = 0; i < ${#letters}; i++)); do
-        if [[ $value_opts == *"${letters:i:1}"* ]]; then
+        if [[ $value_opts == *"${letters:$i:1}"* ]]; then
           # The value is glued to the letter (-p2222) unless the letter ends
           # the argument, in which case it consumes the next one (-p 2222).
           (( i == ${#letters} - 1 )) && shift

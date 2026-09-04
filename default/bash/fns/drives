@@ -25,7 +25,7 @@ iso2sd() {
     fi
   fi
 
-  sudo sh -c "dd bs=4M status=progress oflag=sync if='$iso' of='$drive' && eject '$drive'"
+  sudo sh -c "dd bs=4M status=progress oflag=sync if='$iso' of='$drive' && sync && udisksctl power-off -b '$drive'"
 }
 
 # Create iso file from sd card
@@ -101,7 +101,8 @@ format-drive() {
     lsblk -d -o NAME -n | awk '{print "/dev/"$1}'
   else
     echo "WARNING: This will completely erase all data on $1 and label it '$2'."
-    read -rp "Are you sure you want to continue? (y/N): " confirm
+    echo -n "Are you sure you want to continue? (y/N): "
+    read -r confirm
 
     if [[ $confirm =~ ^[Yy]$ ]]; then
       sudo wipefs -a "$1"
@@ -110,7 +111,13 @@ format-drive() {
       sudo parted -s "$1" mkpart primary 1MiB 100%
       sudo parted -s "$1" set 1 msftdata on
 
-      partition="$([[ $1 == *"nvme"* ]] && echo "${1}p1" || echo "${1}1")"
+      if [[ $1 == /dev/disk/by-*/* ]]; then
+        partition="${1}-part1"
+      elif [[ $1 =~ [0-9]$ ]]; then
+        partition="${1}p1"
+      else
+        partition="${1}1"
+      fi
       sudo partprobe "$1" || true
       sudo udevadm settle || true
 
