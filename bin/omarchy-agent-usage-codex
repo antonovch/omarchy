@@ -475,7 +475,12 @@ def _cached_local_stats(max_age):
 
 
 def rpc_request(proc, request_id, method, params=None, timeout=8):
-  payload = {"id": request_id, "method": method, "params": params or {}}
+  payload = {"id": request_id, "method": method}
+  # The app-server's rate-limit read has no params. Sending {} is rejected by
+  # current Codex releases because its schema declares params as null. Keep
+  # params absent when the protocol does not define any.
+  if params is not None:
+    payload["params"] = params
   proc.stdin.write(json.dumps(payload) + "\n")
   proc.stdin.flush()
   deadline = time.time() + timeout
@@ -528,7 +533,11 @@ def fetch_codex_rpc():
 
   try:
     proc = subprocess.Popen(
-      [codex, "-s", "read-only", "-a", "untrusted", "app-server"],
+      # app-server is a read-only query here; it neither runs an agent nor
+      # executes commands. Do not pass interactive-CLI sandbox or approval
+      # flags: `untrusted` was removed from Codex and makes it exit before the
+      # initialize response.
+      [codex, "app-server"],
       stdin=subprocess.PIPE,
       stdout=subprocess.PIPE,
       stderr=subprocess.DEVNULL,
@@ -544,7 +553,7 @@ def fetch_codex_rpc():
     rpc_request(proc, 1, "initialize", {"clientInfo": {"name": "omarchy-agent-usage", "version": "1"}}, timeout=8)
     proc.stdin.write(json.dumps({"method": "initialized", "params": {}}) + "\n")
     proc.stdin.flush()
-    account_msg = rpc_request(proc, 2, "account/read", timeout=4)
+    account_msg = rpc_request(proc, 2, "account/read", {}, timeout=4)
     limits_msg = rpc_request(proc, 3, "account/rateLimits/read", timeout=4)
 
     account = (account_msg.get("result") or {}).get("account") or {}

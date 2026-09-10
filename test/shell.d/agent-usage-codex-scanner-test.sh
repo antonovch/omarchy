@@ -13,7 +13,13 @@ mkdir -p "$TEST_HOME/.codex/sessions/$(date +%Y/%m/%d)" "$TEST_HOME/bin"
 cat >"$TEST_HOME/bin/codex" <<'EOF'
 #!/bin/bash
 
+[[ $* == "app-server" ]] || {
+  echo "expected app-server invocation, got: $*" >&2
+  exit 64
+}
+
 while read -r request; do
+  [[ -n ${CODEX_REQUESTS:-} ]] && printf '%s\n' "$request" >>"$CODEX_REQUESTS"
   id=$(jq -r '.id // empty' <<<"$request")
   method=$(jq -r '.method // empty' <<<"$request")
 
@@ -40,7 +46,7 @@ cat >"$session" <<EOF
 {"timestamp":"$timestamp","type":"event_msg","payload":{"type":"token_count","info":{"total_token_usage":{"input_tokens":180,"cached_input_tokens":110,"output_tokens":30,"reasoning_output_tokens":8,"total_tokens":210},"last_token_usage":{"input_tokens":80,"cached_input_tokens":50,"output_tokens":10,"reasoning_output_tokens":3,"total_tokens":90}}}}
 EOF
 
-result=$(HOME="$TEST_HOME" CODEX_HOME="$TEST_HOME/.codex" XDG_DATA_HOME="$TEST_HOME/.local/share" PATH="$TEST_HOME/bin:$PATH" \
+result=$(HOME="$TEST_HOME" CODEX_HOME="$TEST_HOME/.codex" XDG_DATA_HOME="$TEST_HOME/.local/share" PATH="$TEST_HOME/bin:$PATH" CODEX_REQUESTS="$TEST_HOME/requests" \
   "$ROOT/bin/omarchy-agent-usage-codex")
 
 [[ $(jq -r '.todayTotalTokens' <<<"$result") == "210" ]] ||
@@ -54,6 +60,18 @@ pass "Codex collector does not double-count cache or reasoning tokens"
 [[ $(jq -c '.id + "/" + (.limits|tostring)' <<<"$result") == '"codex/[]"' ]] ||
   fail "Codex collector identifies itself with an empty limits list" "$result"
 pass "Codex collector identifies itself with an empty limits list"
+
+[[ $(jq -r '.usageStatusText' <<<"$result") == "" ]] ||
+  fail "Codex collector starts app-server without obsolete CLI options" "$result"
+pass "Codex collector starts app-server without obsolete CLI options"
+
+[[ $(jq -s 'map(select(.method == "account/rateLimits/read")) | .[0] | has("params")' "$TEST_HOME/requests") == "false" ]] ||
+  fail "Codex collector omits params from the rate-limits request"
+pass "Codex collector omits params from the rate-limits request"
+
+[[ $(jq -c -s 'map(select(.method == "account/read")) | .[0].params' "$TEST_HOME/requests") == "{}" ]] ||
+  fail "Codex collector sends the required empty params to account/read"
+pass "Codex collector sends the required empty params to account/read"
 
 # Pi and omp can both spend a Codex subscription without creating native
 # Codex sessions. Their compatible JSONL transcripts must be included.
