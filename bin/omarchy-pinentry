@@ -1,0 +1,69 @@
+#!/bin/bash
+
+# omarchy:summary=Assuan pinentry backend that prompts through the Omarchy shell
+# omarchy:hidden=true
+
+# Invoked by GnuPG-style callers (keepmenu's `pinentry =` setting) as the
+# `pinentry` binary itself, never by a user typing a command. It speaks only
+# the slice of the Assuan protocol keepmenu's own client actually uses: one
+# SETDESC followed by one GETPIN, answered with a single `D <pin>` line. It is
+# not a spec-complete pinentry — passphrases are sent back unescaped (no %XX
+# decoding/encoding), matching what keepmenu's own parser reads today.
+#
+# $OMARCHY_PINENTRY_LABEL overrides the caller's SETDESC on the dialog. Callers
+# describe the secret poorly when they describe it at all — keepmenu only ever
+# says "Enter Password", which reads like the login password in a dialog that
+# deliberately looks like the sudo one.
+
+set -euo pipefail
+
+description=""
+
+printf 'OK Pleased to meet you\n'
+
+while IFS= read -r line; do
+  case "$line" in
+    SETDESC\ *)
+      description="${line#SETDESC }"
+      printf 'OK\n'
+      ;;
+    GETPIN*)
+      selection_file=$(mktemp)
+      done_file=$(mktemp)
+      rm -f "$done_file"
+      trap 'rm -f "$selection_file" "$done_file"' EXIT
+
+      payload=$(perl -MEncode=decode -MJSON::PP=encode_json -e '
+        my $payload = {
+          message => decode("UTF-8", $ARGV[0]),
+          selectionFile => decode("UTF-8", $ARGV[1]),
+          doneFile => decode("UTF-8", $ARGV[2])
+        };
+        print encode_json($payload)
+      ' "${OMARCHY_PINENTRY_LABEL:-$description}" "$selection_file" "$done_file")
+
+      omarchy-shell pinentry show "$payload" >/dev/null
+
+      while [[ ! -e $done_file ]]; do
+        sleep 0.05
+      done
+
+      if [[ -s $selection_file ]]; then
+        printf 'D %s\n' "$(<"$selection_file")"
+        printf 'OK\n'
+      else
+        printf 'ERR 83886179 Operation cancelled <pinentry>\n'
+      fi
+
+      rm -f "$selection_file" "$done_file"
+      ;;
+    BYE*)
+      printf 'OK\n'
+      break
+      ;;
+    "") ;;
+    *)
+      printf 'OK\n'
+      ;;
+  esac
+done

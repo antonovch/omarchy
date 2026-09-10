@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "id": "omarchy.pinentry",
+  "name": "Pinentry",
+  "version": "1.0.0",
+  "author": "Omarchy",
+  "description": "Theme-aware password prompt for GnuPG-style pinentry requests (keepmenu).",
+  "kinds": [
+    "service"
+  ],
+  "keepLoaded": true,
+  "entryPoints": {
+    "service": "Pinentry.qml"
+  }
+}

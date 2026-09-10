@@ -23,7 +23,7 @@ o.bind("SUPER + SHIFT + M", "Music", { omarchy = "or-focus spotify" })
 o.bind("SUPER + SHIFT + ALT + M", "Music TUI", { tui = "cliamp", focus = true })
 o.bind("SUPER + SHIFT + D", "Docker", { tui = "lazydocker" })
 o.bind("SUPER + SHIFT + G", "Signal", { launch = "signal-desktop", focus = "^signal$" })
-o.bind("SUPER + SHIFT + SLASH", "Passwords", { launch = "keepmenu" })
+o.bind("SUPER + SHIFT + SLASH", "Passwords", { launch = "omarchy-launch-keepmenu" })
 o.bind("SUPER + SHIFT + E", "Thunderbird", { launch = "thunderbird" })
 
 -- Web app bindings.

@@ -36,6 +36,7 @@ User-installed plugins live alongside these conceptually but on disk under
 | Lock screen   | `omarchy.lock`            | `service`               | `lock/Service.qml`                    |
 | OSD           | `omarchy.osd`             | `panel`                 | `osd/Osd.qml`                         |
 | Polkit agent  | `omarchy.polkit`          | `service`               | `polkit/PolkitAgent.qml`              |
+| Pinentry      | `omarchy.pinentry`        | `service`               | `pinentry/Pinentry.qml`               |
 
 First-party bar-only widgets also carry manifests next to their QML files,
 e.g. `bar/widgets/Workspaces.manifest.json`. Rich popup widgets live in their
@@ -90,6 +91,17 @@ Theme-aware authentication dialog for privileged actions. It uses
 Quickshell's native `Quickshell.Services.Polkit.PolkitAgent` backend and
 runs inside the long-lived `omarchy-shell` process, replacing the old
 `polkit-gnome-authentication-agent-1` autostart.
+
+## Pinentry
+
+Theme-aware password prompt for GnuPG-style pinentry requests, styled
+identically to the polkit agent above (same `Color.polkit.*` tokens rather
+than a separate theme section). It registers its own `pinentry` IPC target
+(`omarchy-shell pinentry show '<jsonPayload>'`, carrying `message`,
+`selectionFile`, `doneFile`) using the same file-based selection round-trip
+as the image picker and menu plugins. `bin/omarchy-pinentry` is the actual
+`pinentry`-protocol binary that drives it — see its header comment for the
+Assuan slice it implements. Used by keepmenu (`config/keepmenu/config.ini`).
 
 ## Omarchy menu
 
