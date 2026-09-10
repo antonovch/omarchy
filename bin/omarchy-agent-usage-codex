@@ -254,7 +254,12 @@ def rpc_send(proc, payload, operation):
 
 
 def rpc_request(proc, request_id, method, params=None, timeout=8):
-  payload = {"id": request_id, "method": method, "params": params or {}}
+  payload = {"id": request_id, "method": method}
+  # The app-server's rate-limit read has no params. Sending {} is rejected by
+  # current Codex releases because its schema declares params as null. Keep
+  # params absent when the protocol does not define any.
+  if params is not None:
+    payload["params"] = params
   rpc_send(proc, payload, method)
   # Read the raw fd and split lines ourselves. The app-server can emit
   # notifications in the same write as a reply; a buffered readline() would
@@ -631,7 +636,7 @@ def fetch_codex_rpc(home=None, primary=True):
     # app-server can leave it unanswered for good.
     if not plan:
       try:
-        account_msg = rpc_request(proc, 3, "account/read", timeout=2)
+        account_msg = rpc_request(proc, 3, "account/read", {}, timeout=2)
         account = obj(obj(account_msg.get("result")).get("account"))
         plan = account.get("planType") or account.get("type") or ""
       except (TimeoutError, RuntimeError):
