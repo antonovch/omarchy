@@ -1,0 +1,50 @@
+#!/bin/bash
+
+# omarchy:summary=Launch keepmenu with its prompts wired through the Omarchy menu
+
+# keepmenu only forwards `-p <prompt>` to menu commands whose basename it
+# recognizes (dmenu, rofi, fuzzel, ...), so naming omarchy-menu-dmenu directly
+# in its config silently drops every prompt and each menu just reads "Select".
+# Reach the same script through an alias named `dmenu` instead, kept in the
+# state dir rather than on PATH so it shadows nothing.
+
+set -euo pipefail
+
+alias_dir="$HOME/.local/state/omarchy/keepmenu"
+alias_path="$alias_dir/dmenu"
+config_file="$HOME/.config/keepmenu/config.ini"
+
+if [[ ! -x $alias_path ]]; then
+  mkdir -p "$alias_dir"
+  cat >"$alias_path" <<'ALIAS'
+#!/bin/bash
+
+exec omarchy-menu-dmenu "$@"
+ALIAS
+  chmod +x "$alias_path"
+fi
+
+# Seed the shipped config before keepmenu can write its own, which would ask for
+# a plain `dmenu` that Omarchy does not install.
+if [[ ! -f $config_file ]]; then
+  mkdir -p "$(dirname "$config_file")"
+  cp "$OMARCHY_PATH/config/keepmenu/config.ini" "$config_file"
+fi
+
+# Only claim the shipped default: a user who chose their own menu keeps it.
+if grep -qE '^dmenu_command *= *omarchy-menu-dmenu *$' "$config_file"; then
+  sed -i "s|^dmenu_command *= *omarchy-menu-dmenu *$|dmenu_command = ${alias_path//&/\\&}|" "$config_file"
+fi
+
+# keepmenu's passphrase prompt only ever says "Enter Password", which reads like
+# the login password in a dialog that deliberately looks like the sudo one. Name
+# the database instead; keepmenu passes its environment on to pinentry.
+mapfile -t databases < <(sed -nE 's/^database_[0-9]+[[:space:]]*=[[:space:]]*(.*[^[:space:]])[[:space:]]*$/\1/p' "$config_file")
+
+if ((${#databases[@]} == 1)); then
+  export OMARCHY_PINENTRY_LABEL="KeePass database: ${databases[0]}"
+else
+  export OMARCHY_PINENTRY_LABEL="KeePass database"
+fi
+
+exec keepmenu "$@"

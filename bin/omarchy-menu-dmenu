@@ -7,8 +7,9 @@
 # omarchy:examples=printf 'a\nb\n' | omarchy menu dmenu -p Pick
 
 # dmenu-compatible front end for omarchy-menu-select, which takes its options as
-# positional arguments. Lets stdin-driven tools (keepmenu, scripts ported from
-# walker --dmenu) keep working against the Quickshell menu.
+# positional arguments, and for omarchy-menu-input when stdin carries none. Lets
+# stdin-driven tools (keepmenu, scripts ported from walker --dmenu) keep working
+# against the Quickshell menu.
 
 set -euo pipefail
 
@@ -47,7 +48,15 @@ while IFS= read -r line; do
   [[ -n $line ]] && options+=("$line")
 done
 
-((${#options[@]})) || exit 1
+# dmenu still shows its prompt when stdin is empty and returns whatever was
+# typed, so no options means a free-text input rather than a failure. keepmenu
+# asks for the database path this way on first run.
+if ((${#options[@]} == 0)); then
+  # Free-text callers ask in whole sentences ("Enter path to existing Keepass
+  # database..."), which the default input width elides down to a few words.
+  [[ " ${menu_args[*]} " == *" --width "* ]] || menu_args+=(--width 520)
+  exec omarchy-menu-input "$prompt" "${menu_args[@]}"
+fi
 
 if ((${#menu_args[@]})); then
   exec omarchy-menu-select "$prompt" "${options[@]}" -- "${menu_args[@]}"
