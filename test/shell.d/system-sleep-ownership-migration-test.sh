@@ -695,11 +695,17 @@ printf '%s\n' "$*" >>"$KEYBOARD_CALLS"
 SH
 chmod +x "$stub_bin/brightnessctl"
 
+# This fork's keyboard-backlight hook (default/systemd/system-sleep/keyboard-backlight)
+# deliberately widens the upstream hibernate-only guard to cover every sleep
+# action, so it also turns the backlight off during the suspend leg of a
+# compound suspend-then-hibernate -- not just the hibernate leg.
 SYSTEMD_SLEEP_ACTION=suspend KEYBOARD_CALLS="$keyboard_calls" PATH="$stub_bin:$PATH" \
   bash "$keyboard_hook_copy" pre suspend-then-hibernate
-[[ ! -e $keyboard_calls ]] || fail "keyboard-backlight runs during the suspend phase of compound sleep"
+grep -Fqx -- '-sd asus::kbd_backlight set 0' "$keyboard_calls" ||
+  fail "keyboard-backlight skips the suspend phase of compound sleep"
+: >"$keyboard_calls"
 SYSTEMD_SLEEP_ACTION=hibernate KEYBOARD_CALLS="$keyboard_calls" PATH="$stub_bin:$PATH" \
   bash "$keyboard_hook_copy" pre suspend-then-hibernate
-grep -Fqx -- '-d asus::kbd_backlight set 0' "$keyboard_calls" ||
+grep -Fqx -- '-sd asus::kbd_backlight set 0' "$keyboard_calls" ||
   fail "keyboard-backlight skips the hibernate phase of compound sleep"
-pass "keyboard-backlight handles the hibernate phase of suspend-then-hibernate"
+pass "keyboard-backlight handles both phases of suspend-then-hibernate"
