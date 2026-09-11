@@ -146,8 +146,8 @@ That is the opposite of the pre-4.0 arrangement, where the checkout at
    omarchy-branding-about reset
    ```
 
-   Kept across upgrades by `NoUpgrade` in `default/pacman/pacman.conf` plus the
-   `post-update.d/restore-branding` hook installed in step 5.
+   Kept across upgrades by `NoUpgrade` in each `default/pacman/pacman-<channel>.conf`
+   plus the `post-update.d/restore-branding` hook installed in step 5.
 
 7. **Machine-specific leftovers**, which nothing in the repo can do for you:
 

@@ -12,14 +12,11 @@ else
   mirror="unknown"
 fi
 
-# The package channel lives in the omarchy mirrorlist now, not in pacman.conf:
-# one pacman.conf serves every channel. Fall back to pacman.conf for systems
-# still carrying an inlined [omarchy] Server.
-omarchy_repo_files=(/etc/pacman.d/omarchy-mirrorlist /etc/pacman.conf)
-
-if grep -qs "https://pkgs.omarchy.org/stable/" "${omarchy_repo_files[@]}"; then
+if grep -q "https://pkgs.omarchy.org/stable/" /etc/pacman.conf; then
   pkgs="stable"
-elif grep -qs "https://pkgs.omarchy.org/edge/" "${omarchy_repo_files[@]}"; then
+elif grep -q "https://pkgs.omarchy.org/rc/" /etc/pacman.conf; then
+  pkgs="rc"
+elif grep -q "https://pkgs.omarchy.org/edge/" /etc/pacman.conf; then
   pkgs="edge"
 else
   pkgs="unknown"

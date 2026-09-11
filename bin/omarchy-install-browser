@@ -4,9 +4,10 @@
 # omarchy:args=<chrome|brave|brave-origin|edge|firefox|zen>
 # omarchy:examples=omarchy install browser firefox | omarchy install browser brave
 
-setup_policy_directory() {
-  sudo mkdir -p "$1"
-  sudo chmod a+rw "$1"
+source "$OMARCHY_PATH/install/helpers/browser-policy.sh"
+
+setup_chromium_policy_directory() {
+  browser_policy_setup_dir "$1"
 }
 
 announce_browser_installed() {
@@ -21,6 +22,11 @@ copy_chromium_flags() {
   omarchy-install-chromium-ytdlp
 }
 
+setup_firefox_wayland() {
+  mkdir -p ~/.config/environment.d
+  echo "MOZ_ENABLE_WAYLAND=1" > ~/.config/environment.d/omarchy-firefox-wayland.conf
+}
+
 # Apply policies + autoconfig to a Firefox install root (the directory holding
 # the firefox binary), e.g. /usr/lib/firefox or the firefoxpwa runtime. Takes the
 # distribution dir so existing callers keep working.
@@ -28,20 +34,30 @@ setup_firefox_preferences() {
   local distribution_dir="$1"
   local install_root="${distribution_dir%/distribution}"
   local xpi="$OMARCHY_PATH/default/firefox/theme-switcher/remote-theme-switcher@local.xpi"
-  # The runtime under $HOME is user-owned; /usr/lib and /opt are not.
-  local as_root="sudo"
-  [[ -w $install_root ]] && as_root=""
+  local staged
 
-  setup_policy_directory "$distribution_dir"
-  sed "s|@@THEME_SWITCHER_XPI@@|file://$xpi|" \
-    "$OMARCHY_PATH/default/firefox/policies.json" |
-    $as_root tee "$distribution_dir/policies.json" >/dev/null
+  staged=$(mktemp) || return 1
+  sed "s|@@THEME_SWITCHER_XPI@@|file://$xpi|" "$OMARCHY_PATH/default/firefox/policies.json" >"$staged"
+
+  # The runtime under $HOME is user-owned; /usr/lib and /opt are not, and get
+  # the same root-hardened install as the Chromium-family policy directories.
+  if [[ -w $install_root ]]; then
+    mkdir -p "$distribution_dir"
+    cp -f "$staged" "$distribution_dir/policies.json"
+  else
+    browser_policy_setup_parent "$distribution_dir"
+    browser_policy_purge_dir "$distribution_dir"
+    browser_policy_install_firefox_policies "$distribution_dir" "$staged"
+  fi
+  rm -f "$staged"
 
   # autoconfig.js points Firefox at firefox.cfg for defaultPref overrides that
   # the policy schema can't express.
-  $as_root mkdir -p "$install_root/defaults/pref"
-  $as_root cp -f "$OMARCHY_PATH/default/firefox/firefox.cfg" "$install_root/firefox.cfg"
-  $as_root cp -f "$OMARCHY_PATH/default/firefox/autoconfig.js" "$install_root/defaults/pref/autoconfig.js"
+  local sudo_prefix="sudo"
+  [[ -w $install_root ]] && sudo_prefix=""
+  $sudo_prefix mkdir -p "$install_root/defaults/pref"
+  $sudo_prefix cp -f "$OMARCHY_PATH/default/firefox/firefox.cfg" "$install_root/firefox.cfg"
+  $sudo_prefix cp -f "$OMARCHY_PATH/default/firefox/autoconfig.js" "$install_root/defaults/pref/autoconfig.js"
 }
 
 # The firefoxpwa runtime is a second, private Firefox that policies in
@@ -85,17 +101,12 @@ setup_firefox_theme_switcher() {
 EOF
 }
 
-setup_firefox_wayland() {
-  mkdir -p ~/.config/environment.d
-  echo "MOZ_ENABLE_WAYLAND=1" > ~/.config/environment.d/omarchy-firefox-wayland.conf
-}
-
 case $1 in
 chrome)
   echo "Installing Chrome..."
   omarchy-pkg-aur-add google-chrome || exit 1
 
-  setup_policy_directory /etc/opt/chrome/policies/managed
+  setup_chromium_policy_directory /etc/opt/chrome/policies/managed
   copy_chromium_flags ~/.config/chrome-flags.conf
   omarchy-theme-set-browser
   announce_browser_installed "Chrome"
@@ -104,7 +115,7 @@ edge)
   echo "Installing Edge..."
   omarchy-pkg-aur-add microsoft-edge-stable-bin || exit 1
 
-  setup_policy_directory /etc/opt/edge/policies/managed
+  setup_chromium_policy_directory /etc/opt/edge/policies/managed
   copy_chromium_flags ~/.config/microsoft-edge-stable-flags.conf
   omarchy-theme-set-browser
   announce_browser_installed "Edge"
@@ -113,7 +124,7 @@ brave)
   echo "Installing Brave..."
   omarchy-pkg-aur-add brave-bin || exit 1
 
-  setup_policy_directory /etc/brave/policies/managed
+  setup_chromium_policy_directory /etc/brave/policies/managed
   copy_chromium_flags ~/.config/brave-flags.conf
   omarchy-theme-set-browser
   announce_browser_installed "Brave"
@@ -122,7 +133,7 @@ brave-origin)
   echo "Installing Brave Origin..."
   omarchy-pkg-aur-add brave-origin-bin || exit 1
 
-  setup_policy_directory /etc/brave/policies/managed
+  setup_chromium_policy_directory /etc/brave/policies/managed
   copy_chromium_flags ~/.config/brave-origin-flags.conf
   omarchy-theme-set-browser
   announce_browser_installed "Brave Origin"

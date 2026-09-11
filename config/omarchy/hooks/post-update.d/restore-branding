@@ -5,8 +5,9 @@
 # The branding lives at fixed system paths that omarchy-dev-link cannot shadow,
 # so a package upgrade replaces it. Two different mechanisms do the replacing:
 #
-#   - the logos are extracted by pacman, so NoUpgrade in default/pacman/pacman.conf
-#     already holds them (this hook is the backstop if that file is ever reset);
+#   - the logos are extracted by pacman, so NoUpgrade in each
+#     default/pacman/pacman-<channel>.conf already holds them (this hook is the
+#     backstop if that file is ever reset);
 #   - /etc/plymouth/plymouthd.conf is written by the omarchy-settings post_upgrade
 #     scriptlet with `cp -f` from /usr/share/omarchy/etc-overrides/, which carries
 #     no DeviceScale line. NoUpgrade cannot guard against a scriptlet, so
