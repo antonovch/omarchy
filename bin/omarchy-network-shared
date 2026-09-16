@@ -76,15 +76,25 @@ sudo_grants_passwordless() {
 require_root() {
   if (( EUID == 0 )); then
     return
-  elif [[ -t 0 ]] || sudo_grants_passwordless "$@"; then
+  fi
+
+  # PACKAGED_PATH does not exist until an install of Omarchy new enough to
+  # carry this command lands at /usr/bin -- a dev checkout can run ahead of
+  # that on its own machine. The sudoers grant cannot match a path with
+  # nothing there either, so elevate the copy actually running instead of
+  # handing sudo/pkexec a target neither can find.
+  local target=$PACKAGED_PATH
+  [[ -x $target ]] || target=$(realpath -- "$0")
+
+  if [[ -t 0 ]] || sudo_grants_passwordless "$@"; then
     # A terminal can carry sudo's own password prompt. Without one, sudo is
     # right only where the grant reaches; polkit can at least put a prompt on
     # screen, and offer to authenticate as someone else. This is what makes the
     # menu's one-click shared/wan toggle work: it runs detached, with no
     # terminal to show a prompt in.
-    exec sudo "$PACKAGED_PATH" "$@"
+    exec sudo "$target" "$@"
   else
-    exec pkexec "$PACKAGED_PATH" "$@"
+    exec pkexec "$target" "$@"
   fi
 }
 
