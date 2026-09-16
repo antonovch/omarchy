@@ -39,6 +39,10 @@ Panel {
     return Model.deviceLabel(device)
   }
 
+  function displayLabel(device) {
+    return Model.displayLabel(device)
+  }
+
   function isUuidLike(value) {
     return Model.isUuidLike(value)
   }
@@ -998,7 +1002,7 @@ Panel {
 
         Text {
           textFormat: Text.PlainText
-          text: root.deviceLabel(row.dev) || Commons.I18n.t("bluetooth.device")
+          text: root.displayLabel(row.dev) || Commons.I18n.t("bluetooth.device")
           color: root.bar.foreground
           font.family: root.bar.fontFamily
           font.pixelSize: Style.font.body
