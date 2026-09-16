@@ -38,6 +38,41 @@ function hasHumanName(device) {
   return label !== "" && !isUuidLike(label) && !isAddressLike(label)
 }
 
+// BlueZ derives Icon from the Class-of-Device seen during inquiry, which
+// arrives independently of (and often well before) the Name property. Some
+// devices — Apple's classic-Bluetooth keyboards and trackpads chief among
+// them — never answer BlueZ's remote-name request at all, so hasHumanName()
+// alone would hide a real, known-type peripheral behind an address-only
+// label forever. A recognized input-* icon is enough to trust the device is
+// a real HID peripheral and worth surfacing under a generic name, without
+// reopening the door to anonymous BLE advertising spam (which has no icon).
+function humanIconLabel(icon) {
+  var key = String(icon || "").trim().toLowerCase()
+  if (key.indexOf("input-") !== 0) return ""
+
+  var labels = {
+    "input-keyboard": "Keyboard",
+    "input-mouse": "Mouse",
+    "input-tablet": "Trackpad",
+    "input-gaming": "Game Controller"
+  }
+  if (labels[key]) return labels[key]
+
+  var rest = key.slice(6).replace(/-/g, " ").trim()
+  return rest === "" ? "Input Device" : rest.charAt(0).toUpperCase() + rest.slice(1)
+}
+
+function isDisplayable(device) {
+  return hasHumanName(device) || humanIconLabel(device && device.icon) !== ""
+}
+
+// What a row should actually render: the real label when BlueZ resolved one,
+// otherwise the icon-derived fallback that let this device past isDisplayable.
+function displayLabel(device) {
+  if (hasHumanName(device)) return deviceLabel(device)
+  return humanIconLabel(device && device.icon)
+}
+
 function nodeProps(node) {
   return node && node.ready && node.properties ? node.properties : {}
 }
@@ -76,7 +111,7 @@ function bluetoothSinkMatchesDevice(node, device) {
 
 function sortedByLabel(devices) {
   var list = toArray(devices)
-  list.sort(function(a, b) { return deviceLabel(a).localeCompare(deviceLabel(b)) })
+  list.sort(function(a, b) { return displayLabel(a).localeCompare(displayLabel(b)) })
   return list
 }
 
@@ -91,6 +126,7 @@ function deviceRow(d) {
     address: d.address || "",
     name: d.name || "",
     deviceName: d.deviceName || "",
+    icon: d.icon || "",
     connected: !!d.connected,
     state: d.state !== undefined ? d.state : -1,
     batteryAvailable: !!d.batteryAvailable,
@@ -107,7 +143,7 @@ function deviceLists(devices) {
 
   for (var i = 0; i < values.length; i++) {
     var d = values[i]
-    if (!d || !hasHumanName(d)) continue
+    if (!d || !isDisplayable(d)) continue
     if (d.connected) connected.push(d)
     else if (d.paired || d.bonded || d.trusted) known.push(d)
     else discovered.push(d)
@@ -162,6 +198,9 @@ if (typeof module !== "undefined") {
     isAddressLike: isAddressLike,
     normalizedAddress: normalizedAddress,
     hasHumanName: hasHumanName,
+    humanIconLabel: humanIconLabel,
+    isDisplayable: isDisplayable,
+    displayLabel: displayLabel,
     nodeProps: nodeProps,
     nodeText: nodeText,
     bluetoothSinkMatchesDevice: bluetoothSinkMatchesDevice,

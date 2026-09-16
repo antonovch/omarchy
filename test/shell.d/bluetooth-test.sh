@@ -56,12 +56,29 @@ assertEqual(bluetooth.normalizedAddress('AA:BB_CC-dd-ee-ff'), 'aabbccddeeff', 'b
 assert(!bluetooth.hasHumanName({ name: 'AA:BB:CC:DD:EE:FF' }), 'bluetooth rejects address-only device labels')
 assert(bluetooth.hasHumanName({ deviceName: 'MX Master 3S' }), 'bluetooth accepts human device labels')
 
+// BlueZ's remote-name request goes unanswered by some classic-Bluetooth
+// peripherals (Apple's keyboards and trackpads chief among them), so Name
+// never resolves and the label falls back to the address. The Class-of-Device
+// icon still arrives from the inquiry response, independent of the name, so a
+// recognized input-* icon is enough to trust this is a real HID device.
+assertEqual(bluetooth.humanIconLabel('input-keyboard'), 'Keyboard', 'bluetooth maps the keyboard icon to a friendly label')
+assertEqual(bluetooth.humanIconLabel('input-tablet'), 'Trackpad', 'bluetooth maps the trackpad icon to a friendly label')
+assertEqual(bluetooth.humanIconLabel('input-mouse'), 'Mouse', 'bluetooth maps the mouse icon to a friendly label')
+assertEqual(bluetooth.humanIconLabel('audio-headset'), '', 'bluetooth does not invent a label for non-input icons')
+assertEqual(bluetooth.humanIconLabel(''), '', 'bluetooth does not invent a label without an icon')
+
+assert(!bluetooth.isDisplayable({ name: 'AA:BB:CC:DD:EE:FF' }), 'bluetooth hides anonymous devices with no name and no recognized icon')
+assert(bluetooth.isDisplayable({ name: 'AA:BB:CC:DD:EE:FF', icon: 'input-keyboard' }), 'bluetooth shows an unnamed device with a recognized input icon')
+assertEqual(bluetooth.displayLabel({ name: 'AA:BB:CC:DD:EE:FF', icon: 'input-keyboard' }), 'Keyboard', 'bluetooth falls back to the icon label when the name never resolved')
+assertEqual(bluetooth.displayLabel({ name: 'MX Master 3S', icon: 'input-mouse' }), 'MX Master 3S', 'bluetooth prefers the resolved name over the icon fallback')
+
 const devices = [
   { name: 'Speaker', connected: false, paired: true, address: '2' },
   { name: 'Headphones', connected: true, address: '1' },
   { name: 'Keyboard', connected: false, address: '3' },
   { name: 'AA:BB:CC:DD:EE:FF', connected: true, address: '4' },
-  { name: 'Mouse', connected: false, trusted: true, address: '5' }
+  { name: 'Mouse', connected: false, trusted: true, address: '5' },
+  { name: 'AA:BB:CC:DD:EE:FF', connected: false, address: '9', icon: 'input-tablet' }
 ]
 
 const arrayLikeDevices = {
@@ -78,7 +95,7 @@ assertDeepEqual(
 const lists = bluetooth.deviceLists(devices)
 assertDeepEqual(lists.connected.map(bluetooth.deviceLabel), ['Headphones'], 'bluetooth groups connected devices')
 assertDeepEqual(lists.known.map(bluetooth.deviceLabel), ['Mouse', 'Speaker'], 'bluetooth groups known devices by label')
-assertDeepEqual(lists.discovered.map(bluetooth.deviceLabel), ['Keyboard'], 'bluetooth groups discovered devices')
+assertDeepEqual(lists.discovered.map(bluetooth.displayLabel), ['Keyboard', 'Trackpad'], 'bluetooth groups discovered devices, including an unnamed one surfaced by its input icon')
 assertDeepEqual(bluetooth.visibleSections(lists, true), ['connected', 'known', 'discovered'], 'bluetooth shows discovered section while scanning')
 assertDeepEqual(bluetooth.visibleSections(lists, false), ['connected', 'known'], 'bluetooth hides discovered section when not scanning')
 
@@ -94,7 +111,7 @@ assertDeepEqual(arrayLikeLists.discovered.map(bluetooth.deviceLabel), ['Gamepad'
 
 assertDeepEqual(
   bluetooth.deviceRow({ name: 'Deadbeef', address: '1', connected: false }),
-  { address: '1', name: 'Deadbeef', deviceName: '', connected: false, state: -1, batteryAvailable: false, battery: 0, pairing: false },
+  { address: '1', name: 'Deadbeef', deviceName: '', icon: '', connected: false, state: -1, batteryAvailable: false, battery: 0, pairing: false },
   'bluetooth projects device rows with primitives only'
 )
 assertEqual(

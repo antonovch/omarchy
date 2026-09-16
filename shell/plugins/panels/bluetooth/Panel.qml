@@ -38,6 +38,10 @@ Panel {
     return Model.deviceLabel(device)
   }
 
+  function displayLabel(device) {
+    return Model.displayLabel(device)
+  }
+
   function isUuidLike(value) {
     return Model.isUuidLike(value)
   }
@@ -994,7 +998,7 @@ Panel {
 
         Text {
           textFormat: Text.PlainText
-          text: root.deviceLabel(row.dev) || "Device"
+          text: root.displayLabel(row.dev) || "Device"
           color: root.bar.foreground
           font.family: root.bar.fontFamily
           font.pixelSize: Style.font.body
