@@ -98,21 +98,54 @@ require_root() {
   fi
 }
 
-# UFW's after.rules sends inbound DHCP-server traffic (port 67) straight to
-# the default-deny policy regardless of user rules, to keep noisy broadcast
-# traffic out of the log on WAN-facing hosts. That silently swallows the
-# DHCPDISCOVER packets from whatever's plugged into a shared connection
-# unless we punch an explicit hole for this device. Called only once
-# require_root has secured EUID 0, so ufw itself needs no sudo of its own.
-open_dhcp_port() {
+# Whatever this machine would actually use to reach the internet right now,
+# per the kernel's own route lookup rather than a static guess -- so the
+# forward hole below tracks the real uplink (wifi, another wire, whatever)
+# instead of a name that can go stale. Empty when there is no route yet, e.g.
+# shared mode coming up before the machine itself has one.
+uplink_device() {
+  ip -4 route get 1.1.1.1 2>/dev/null |
+    awk '{ for (i = 1; i <= NF; i++) if ($i == "dev") { print $(i + 1); exit } }'
+}
+
+# NetworkManager's shared connection already turns on per-interface IPv4
+# forwarding and NATs the subnet -- confirmed live, this is not what blocks
+# the plugged-in device's traffic. UFW is: its after.rules sends inbound
+# DHCP-server traffic (port 67) straight to the default-deny policy regardless
+# of user rules, to keep noisy broadcast traffic out of the log on WAN-facing
+# hosts, and its default-deny FORWARD chain has no rule at all for a
+# connection nothing told it about, so it silently drops every packet the
+# shared device tries to route out. dnsmasq answers DNS as well as DHCP on
+# this subnet, and gets the same treatment ufw gives any other listener.
+# Scoped to the live uplink rather than a blanket forward-allow, so the shared
+# device reaches the internet without also being routed onto this machine's
+# other networks (Tailscale, Docker, ...). Called only once require_root has
+# secured EUID 0, so ufw itself needs no sudo of its own.
+open_sharing_firewall() {
   omarchy-cmd-present ufw || return 0
   ufw allow in on "$device" to any port 67 proto udp comment "omarchy-network-shared" >/dev/null
+  ufw allow in on "$device" to any port 53 proto udp comment "omarchy-network-shared" >/dev/null
+  ufw allow in on "$device" to any port 53 proto tcp comment "omarchy-network-shared" >/dev/null
+
+  local uplink
+  uplink=$(uplink_device)
+  if [[ -n $uplink && $uplink != "$device" ]]; then
+    ufw route allow in on "$device" out on "$uplink" comment "omarchy-network-shared" >/dev/null
+  fi
   ufw reload >/dev/null
 }
 
-close_dhcp_port() {
+close_sharing_firewall() {
   omarchy-cmd-present ufw || return 0
   ufw --force delete allow in on "$device" to any port 67 proto udp >/dev/null 2>&1 || true
+  ufw --force delete allow in on "$device" to any port 53 proto udp >/dev/null 2>&1 || true
+  ufw --force delete allow in on "$device" to any port 53 proto tcp >/dev/null 2>&1 || true
+
+  local uplink
+  uplink=$(uplink_device)
+  if [[ -n $uplink && $uplink != "$device" ]]; then
+    ufw --force delete route allow in on "$device" out on "$uplink" >/dev/null 2>&1 || true
+  fi
   ufw reload >/dev/null
 }
 
@@ -152,7 +185,7 @@ case $mode in
     # NetworkManager it picks a free 10.42.x.0/24 that can move.
     nmcli connection modify "$connection" ipv4.method shared ipv4.addresses "$SHARED_ADDRESS"
     nmcli connection up "$connection" >/dev/null
-    open_dhcp_port
+    open_sharing_firewall
     echo "Wired ($device): sharing this machine's connection, DHCP server at ${SHARED_ADDRESS%/*}"
     ;;
   wan)
@@ -160,7 +193,7 @@ case $mode in
     # ipv4.addresses has to be cleared or it survives as a static address.
     nmcli connection modify "$connection" ipv4.method auto ipv4.addresses ""
     nmcli connection up "$connection" >/dev/null
-    close_dhcp_port
+    close_sharing_firewall
     echo "Wired ($device): WAN mode (DHCP client)"
     ;;
   *)
