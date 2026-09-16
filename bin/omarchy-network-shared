@@ -7,6 +7,18 @@
 
 set -euo pipefail
 
+# Whenever this runs as root — invoked directly through the passwordless
+# sudoers rule, or re-execed by require_root below — sudo's secure_path decides
+# where a bare helper resolves, and a dev link (etc/sudoers.d/omarchy-dev-path)
+# prepends a user-writable checkout bin/ to it. nmcli and ufw are system
+# tools and omarchy-cmd-present is an omarchy-* command, never one this script
+# should resolve out of a checkout, so pin PATH to trusted system directories
+# once root is held. The unprivileged wrapper phase keeps the caller's PATH so
+# it can still find sudo/pkexec.
+if (( EUID == 0 )); then
+  export PATH=/usr/local/sbin:/usr/local/bin:/usr/bin:/usr/sbin:/bin:/sbin
+fi
+
 # Shared mode turns the wired port into an uplink for whatever is plugged into
 # it: NetworkManager runs its own dnsmasq for DHCP and DNS and sets up NAT to
 # the machine's other route. WAN mode is the normal DHCP client.
@@ -17,6 +29,11 @@ set -euo pipefail
 # cannot compete for the same link.
 
 SHARED_ADDRESS="10.42.0.1/24"
+
+# The path etc/sudoers.d/omarchy-network-shared names. The privileged half
+# always runs from there rather than from whichever copy was invoked, so the
+# rule matches even where $OMARCHY_PATH points at a dev-linked checkout.
+PACKAGED_PATH=/usr/bin/omarchy-network-shared
 
 wired_device() {
   nmcli -t -f DEVICE,TYPE device status 2>/dev/null |
@@ -43,6 +60,50 @@ current_mode() {
     shared) echo "shared" ;;
     *) echo "wan" ;;
   esac
+}
+
+# True when sudo would run this exact command without stopping for a password.
+# `sudo -l` on its own reports whether a command is permitted, which the blanket
+# %wheel rule answers yes to for everything; the long listing prints the matched
+# entry's tags, so !authenticate is the grant in etc/sudoers.d/omarchy-network-shared
+# and nothing else. Listing runs nothing and, under -n, prompts for nothing, so a
+# machine whose omarchy-settings predates that file falls through to polkit
+# instead of dying on a password prompt it has no terminal to show.
+sudo_grants_passwordless() {
+  sudo -n -l -l "$PACKAGED_PATH" "$@" 2>/dev/null | grep -q '!authenticate'
+}
+
+require_root() {
+  if (( EUID == 0 )); then
+    return
+  elif [[ -t 0 ]] || sudo_grants_passwordless "$@"; then
+    # A terminal can carry sudo's own password prompt. Without one, sudo is
+    # right only where the grant reaches; polkit can at least put a prompt on
+    # screen, and offer to authenticate as someone else. This is what makes the
+    # menu's one-click shared/wan toggle work: it runs detached, with no
+    # terminal to show a prompt in.
+    exec sudo "$PACKAGED_PATH" "$@"
+  else
+    exec pkexec "$PACKAGED_PATH" "$@"
+  fi
+}
+
+# UFW's after.rules sends inbound DHCP-server traffic (port 67) straight to
+# the default-deny policy regardless of user rules, to keep noisy broadcast
+# traffic out of the log on WAN-facing hosts. That silently swallows the
+# DHCPDISCOVER packets from whatever's plugged into a shared connection
+# unless we punch an explicit hole for this device. Called only once
+# require_root has secured EUID 0, so ufw itself needs no sudo of its own.
+open_dhcp_port() {
+  omarchy-cmd-present ufw || return 0
+  ufw allow in on "$device" to any port 67 proto udp comment "omarchy-network-shared" >/dev/null
+  ufw reload >/dev/null
+}
+
+close_dhcp_port() {
+  omarchy-cmd-present ufw || return 0
+  ufw --force delete allow in on "$device" to any port 67 proto udp >/dev/null 2>&1 || true
+  ufw reload >/dev/null
 }
 
 device=$(wired_device)
@@ -76,16 +137,20 @@ fi
 
 case $mode in
   shared)
+    require_root shared
     # Pinning the address keeps the subnet stable across reconnects; left to
     # NetworkManager it picks a free 10.42.x.0/24 that can move.
     nmcli connection modify "$connection" ipv4.method shared ipv4.addresses "$SHARED_ADDRESS"
     nmcli connection up "$connection" >/dev/null
+    open_dhcp_port
     echo "Wired ($device): sharing this machine's connection, DHCP server at ${SHARED_ADDRESS%/*}"
     ;;
   wan)
+    require_root wan
     # ipv4.addresses has to be cleared or it survives as a static address.
     nmcli connection modify "$connection" ipv4.method auto ipv4.addresses ""
     nmcli connection up "$connection" >/dev/null
+    close_dhcp_port
     echo "Wired ($device): WAN mode (DHCP client)"
     ;;
   *)

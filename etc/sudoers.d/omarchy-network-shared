@@ -1,0 +1,6 @@
+# The wired-sharing toggle is a one-click action in the network menu, so it
+# must not stop for a password to open (or close) the DHCP-server hole ufw's
+# after.rules otherwise swallows silently. The device is resolved inside the
+# script from whatever is actually plugged in, never taken as an argument, so
+# nothing wider than the two valid modes is ever granted.
+%wheel ALL=(root) NOPASSWD: /usr/bin/omarchy-network-shared shared, /usr/bin/omarchy-network-shared wan
