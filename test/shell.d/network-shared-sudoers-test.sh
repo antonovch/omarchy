@@ -147,9 +147,18 @@ elevation_for() {
   cat "$test_tmp/elevation"
 }
 
+# This command shipped nowhere before the quattro branch, so a dev checkout
+# regularly runs ahead of the installed package: /usr/bin/omarchy-network-shared
+# does not exist until an Omarchy update carries it there, and the sudoers
+# grant can't match a path with nothing at it either. require_root elevates
+# whatever copy is actually running in that case, so the expected target
+# tracks the same host check the script itself makes.
+expected_target=/usr/bin/omarchy-network-shared
+[[ -x $expected_target ]] || expected_target=$(realpath -- "$net_shared")
+
 for target in shared wan; do
   elevation=$(elevation_for "$target")
-  [[ $elevation == "sudo /usr/bin/omarchy-network-shared $target" ]] ||
+  [[ $elevation == "sudo $expected_target $target" ]] ||
     fail "omarchy-network-shared takes the passwordless sudo grant for $target without a terminal" "got: $elevation"
 done
 
@@ -158,7 +167,7 @@ pass "omarchy-network-shared elevates shared/wan through sudo, not polkit"
 # A dev-linked checkout elevates the packaged path like everyone else, rather
 # than handing sudo a path no rule can name and losing the grant.
 dev_linked=$(OMARCHY_PATH="$test_tmp/checkout" elevation_for shared)
-[[ $dev_linked == "sudo /usr/bin/omarchy-network-shared shared" ]] ||
+[[ $dev_linked == "sudo $expected_target shared" ]] ||
   fail "omarchy-network-shared elevates the system install wherever OMARCHY_PATH points" "got: $dev_linked"
 
 # The grant is what makes sudo passwordless, so its absence -- an install still
@@ -166,7 +175,20 @@ dev_linked=$(OMARCHY_PATH="$test_tmp/checkout" elevation_for shared)
 # leaves the menu's one-click toggle execing into a password prompt it has no
 # terminal to show.
 ungranted=$(STUB_GRANTED="" elevation_for shared)
-[[ $ungranted == "pkexec /usr/bin/omarchy-network-shared shared" ]] ||
+[[ $ungranted == "pkexec $expected_target shared" ]] ||
   fail "omarchy-network-shared falls back to polkit where the sudoers grant is not installed" "got: $ungranted"
 
 pass "omarchy-network-shared falls back to polkit wherever the grant does not reach"
+
+# The fallback itself: with the packaged path unavailable, sudo/pkexec must
+# never be handed a target neither can find -- that is exactly the bug this
+# test guards against (reported live as "sudo: /usr/bin/omarchy-network-shared:
+# command not found").
+if [[ $expected_target == /usr/bin/omarchy-network-shared ]]; then
+  pass "packaged /usr/bin/omarchy-network-shared exists on this machine; skipping the missing-package fallback probe"
+else
+  fallback=$(elevation_for shared)
+  [[ $fallback == "sudo $expected_target shared" ]] ||
+    fail "omarchy-network-shared elevates its own resolved path when the packaged copy is not installed" "got: $fallback"
+  pass "omarchy-network-shared falls back to its own path when /usr/bin/omarchy-network-shared is not installed"
+fi
