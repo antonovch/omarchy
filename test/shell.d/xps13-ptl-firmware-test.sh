@@ -43,7 +43,7 @@ if [[ $1 == "-Q" ]]; then
   fi
 else
   printf 'pacman %s\n' "$*" >>"$TEST_LOG"
-  [[ $* == "-S --noconfirm --needed linux-firmware-cirrus-dx13260" ]] || exit 1
+  [[ $* == "-S --noconfirm --needed -- linux-firmware-cirrus-dx13260" ]] || exit 1
   [[ ${TEST_INSTALL_FAILURE:-0} == "0" ]] || exit 1
   touch "$TEST_ALIAS_FILE"
 fi
@@ -57,7 +57,7 @@ chmod +x "$test_tmp/bin/"*
 export PATH="$test_tmp/bin:$ROOT/bin:$PATH"
 export TEST_LOG="$test_tmp/calls" TEST_VERSION_FILE="$test_tmp/version" TEST_ALIAS_FILE="$test_tmp/alias-installed"
 export TEST_PRODUCT_NAME="XPS 13 DX13260" TEST_INTEL_PTL=1
-install_call="pacman -S --noconfirm --needed linux-firmware-cirrus-dx13260"
+install_call="pacman -S --noconfirm --needed -- linux-firmware-cirrus-dx13260"
 export OMARCHY_PATH="$ROOT"
 
 reset_fixture() {
