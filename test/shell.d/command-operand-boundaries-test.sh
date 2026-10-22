@@ -105,7 +105,7 @@ pass "pkg-add keeps option-shaped package names out of pacman option parsing"
 PATH="$mock_bin:$ROOT/bin:$PATH" OMARCHY_TEST_PACKAGE_CALLS="$package_calls" \
   "$ROOT/bin/omarchy-pkg-aur-add" --hookdir=/tmp/hooks
 
-grep -Fx 'yay <-S> <--noconfirm> <--needed> <--> <--hookdir=/tmp/hooks>' "$package_calls" >/dev/null ||
+grep -Fx 'yay <-S> <--noconfirm> <--needed> <--sudoflags> <-n> <--> <--hookdir=/tmp/hooks>' "$package_calls" >/dev/null ||
   fail "pkg-aur-add separates package operands from yay options" "$(<"$package_calls")"
 grep -Fx 'pacman <-Q> <--> <--hookdir=/tmp/hooks>' "$package_calls" >/dev/null ||
   fail "pkg-aur-add verifies an option-shaped package name literally" "$(<"$package_calls")"
