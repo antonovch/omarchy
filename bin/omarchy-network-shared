@@ -190,8 +190,10 @@ case $mode in
     ;;
   wan)
     require_root wan
-    # ipv4.addresses has to be cleared or it survives as a static address.
-    nmcli connection modify "$connection" ipv4.method auto ipv4.addresses ""
+    # ipv4.addresses has to be cleared or it survives as a static address. A
+    # shared-mode ipv4.shared-dhcp-range goes with it: NetworkManager rejects
+    # the whole change when the range no longer sits in a configured network.
+    nmcli connection modify "$connection" ipv4.method auto ipv4.addresses "" ipv4.shared-dhcp-range ""
     nmcli connection up "$connection" >/dev/null
     close_sharing_firewall
     echo "Wired ($device): WAN mode (DHCP client)"
