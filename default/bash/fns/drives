@@ -25,7 +25,7 @@ iso2sd() {
     fi
   fi
 
-  sudo sh -c "dd bs=4M status=progress oflag=sync if='$iso' of='$drive' && sync && udisksctl power-off -b '$drive'"
+  sudo sh -c "dd bs=4M status=progress oflag=sync if='$iso' of='$drive' && sync && { udisksctl power-off -b '$drive' 2>/dev/null || true; }"
 }
 
 # Create iso file from sd card
