@@ -3,16 +3,19 @@
 # omarchy:summary=Launch a URL as a web app in the default supported browser
 # omarchy:args=<url> [name]
 
-browser=$(xdg-settings get default-web-browser)
+browser=$(omarchy-cmd-default-browser)
 url="$1"
 name="${2:-}"
 
 launch_chromium_app() {
   local desktop="$1"
   shift
-  exec setsid uwsm-app -- \
-    $(sed -n 's/^Exec=\([^ ]*\).*/\1/p' {~/.local,~/.nix-profile,/usr}/share/applications/$desktop 2>/dev/null | head -1) \
-    --app="$url" "$@"
+  local browser_exec
+  browser_exec=$(sed -n 's/^Exec=\([^ ]*\).*/\1/p' \
+    {~/.local,~/.nix-profile,/usr}/share/applications/$desktop 2>/dev/null | head -1)
+  if ! omarchy-cmd-browser-handoff "$browser_exec" --app="$url" "$@"; then
+    exec setsid uwsm-app -- $browser_exec --app="$url" "$@"
+  fi
 }
 
 # Chromium's --app has no Firefox equivalent, so Firefox web apps go through

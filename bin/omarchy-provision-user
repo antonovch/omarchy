@@ -118,7 +118,7 @@ source "$OMARCHY_INSTALL/user/all.sh"
 omarchy-refresh-applications
 # Firefox and Thunderbird instead of Omarchy's Chromium/HEY defaults. This runs
 # after install/user/all.sh, so it can't be overridden from a setup leaf.
-env -u BROWSER xdg-settings set default-web-browser firefox.desktop
+env -u BROWSER XDG_CURRENT_DESKTOP= xdg-settings set default-web-browser firefox.desktop
 xdg-mime default org.mozilla.Thunderbird.desktop x-scheme-handler/mailto
 
 if (( first_install )); then
