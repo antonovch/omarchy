@@ -1,0 +1,77 @@
+#!/bin/bash
+
+# omarchy:summary=Print the web app manifest URL for a site, if one can be found
+# omarchy:args=<url>
+# omarchy:examples=omarchy webapp manifest https://github.com
+
+# firefoxpwa installs a site from its manifest URL, but the .desktop files and
+# bindings only carry a page URL. Resolve one to the other the way a browser
+# does: read <link rel="manifest"> from the page, then fall back to probing the
+# conventional paths. Prints nothing when neither works (some sites block
+# scripted requests, or inject the manifest link from JavaScript) -- callers
+# should treat that as "no web app" rather than an error.
+
+set -uo pipefail
+
+url="${1:-}"
+if [[ -z $url ]]; then
+  echo "Usage: omarchy-webapp-manifest <url>" >&2
+  exit 1
+fi
+
+# Some sites serve a stub to unknown clients.
+UA="Mozilla/5.0 (X11; Linux x86_64; rv:140.0) Gecko/20100101 Firefox/140.0"
+
+origin=$(sed 's|^\(https\?://[^/]*\).*|\1|' <<<"$url")
+
+is_json_object() {
+  jq -e 'type == "object"' >/dev/null 2>&1
+}
+
+# Resolve a possibly-relative href against the page URL.
+absolute_url() {
+  local href="$1"
+
+  # HTML entities that show up in query strings.
+  href=${href//&amp;/&}
+
+  case "$href" in
+    http://* | https://*) printf '%s\n' "$href" ;;
+    //*) printf '%s:%s\n' "${url%%:*}" "$href" ;;
+    /*) printf '%s%s\n' "$origin" "$href" ;;
+    *) printf '%s/%s\n' "${url%/*}" "$href" ;;
+  esac
+}
+
+manifest_from_html() {
+  local html href
+  html=$(curl -fsSL --max-time 10 -A "$UA" "$url" 2>/dev/null) || return 1
+
+  href=$(grep -oiE '<link[^>]+rel=["'"'"']?manifest["'"'"']?[^>]*>' <<<"$html" |
+    head -1 |
+    grep -oiE 'href=["'"'"']?[^"'"'"' >]+' |
+    head -1 |
+    sed 's/^[Hh][Rr][Ee][Ff]=//; s/^["'"'"']//')
+
+  [[ -n $href ]] || return 1
+  absolute_url "$href"
+}
+
+manifest_from_probe() {
+  local candidate
+  for suffix in /manifest.json /manifest.webmanifest /site.webmanifest /app.webmanifest /pwa.json; do
+    candidate="${origin%/}$suffix"
+    if curl -fsSL --max-time 8 -A "$UA" "$candidate" 2>/dev/null | is_json_object; then
+      printf '%s\n' "$candidate"
+      return 0
+    fi
+  done
+  return 1
+}
+
+# An explicit manifest URL passes straight through.
+case "$url" in
+  *manifest* | *.webmanifest | *pwa.json) printf '%s\n' "$url"; exit 0 ;;
+esac
+
+manifest_from_html || manifest_from_probe

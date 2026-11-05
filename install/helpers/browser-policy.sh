@@ -193,3 +193,15 @@ browser_policy_setup_firefox_distribution() {
   browser_policy_purge_dir "$distribution_dir"
   browser_policy_install_firefox_policies "$distribution_dir" "$policies"
 }
+
+# autoconfig.js points a Firefox-family browser at firefox.cfg for defaultPref
+# overrides that the policy schema can't express. Both live beside the binary,
+# so they are root-owned like the distribution directory.
+browser_policy_install_firefox_autoconfig() {
+  local install_root=$1
+  local source_dir=${2:-$OMARCHY_PATH/default/firefox}
+
+  as_root install -d -m 0755 -o root -g root "$install_root/defaults/pref"
+  as_root install -m 0644 -o root -g root "$source_dir/firefox.cfg" "$install_root/firefox.cfg"
+  as_root install -m 0644 -o root -g root "$source_dir/autoconfig.js" "$install_root/defaults/pref/autoconfig.js"
+}

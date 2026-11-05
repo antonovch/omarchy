@@ -240,14 +240,25 @@ pass "Chromium browser installer restores the complete Omarchy setup"
 : >"$setup_log"
 rm -f "$installed_dir/firefox"
 OMARCHY_TEST_REAL_BROWSER_INSTALL=true omarchy-default-browser --install firefox >/dev/null
-[[ $(<"$install_log") == "pkg:firefox" ]] || fail "Firefox browser installer installs the package"
+[[ $(<"$install_log") == $'pkg:firefox\npkg:firefoxpwa' ]] ||
+  fail "Firefox browser installer installs the package and firefoxpwa" "$(<"$install_log")"
 [[ $(omarchy-default-browser) == "firefox" ]] || fail "Firefox becomes the default after its full installer succeeds"
 grep -Fxq 'sudo:install -d -m 0755 -o root -g root /usr/lib/firefox/distribution' "$setup_log" ||
   fail "Firefox browser installer creates its distribution directory"
 grep -Fxq 'sudo:find /usr/lib/firefox/distribution -mindepth 1 -maxdepth 1 ! -user root -exec rm -rf -- {} +' "$setup_log" ||
   fail "Firefox browser installer drops non-root files from its distribution directory"
-grep -Fxq "sudo:install -m 644 -o root -g root -T $ROOT/default/firefox/policies.json /usr/lib/firefox/distribution/policies.json" "$setup_log" ||
+# The policy is rendered with the theme-switcher extension's path filled in, so
+# the root install copies a temporary file rather than the checked-in template.
+grep -Eq "^sudo:install -m 644 -o root -g root -T /[^ ]+ /usr/lib/firefox/distribution/policies.json$" "$setup_log" ||
   fail "Firefox browser installer copies policies.json without following a destination symlink"
+grep -Fxq "sudo:install -d -m 0755 -o root -g root /usr/lib/firefox/defaults/pref" "$setup_log" ||
+  fail "Firefox browser installer creates a root-owned autoconfig directory"
+grep -Fxq "sudo:install -m 0644 -o root -g root $ROOT/default/firefox/firefox.cfg /usr/lib/firefox/firefox.cfg" "$setup_log" ||
+  fail "Firefox browser installer installs firefox.cfg root-owned"
+grep -Fxq "sudo:install -m 0644 -o root -g root $ROOT/default/firefox/autoconfig.js /usr/lib/firefox/defaults/pref/autoconfig.js" "$setup_log" ||
+  fail "Firefox browser installer installs autoconfig.js root-owned"
+grep -Fxq 'omarchy-theme-set-browser:' "$setup_log" ||
+  fail "Firefox browser installer applies the current theme"
 [[ -e $installed_dir/firefox ]] || fail "Firefox browser installer marks firefox installed"
 pass "Firefox browser installer restores the complete Omarchy setup"
 
@@ -261,7 +272,7 @@ grep -Fxq 'sudo:install -d -m 0755 -o root -g root /opt/zen-browser/distribution
   fail "Zen browser installer creates its distribution directory"
 grep -Fxq 'sudo:find /opt/zen-browser/distribution -mindepth 1 -maxdepth 1 ! -user root -exec rm -rf -- {} +' "$setup_log" ||
   fail "Zen browser installer drops non-root files from its distribution directory"
-grep -Fxq "sudo:install -m 644 -o root -g root -T $ROOT/default/firefox/policies.json /opt/zen-browser/distribution/policies.json" "$setup_log" ||
+grep -Eq "^sudo:install -m 644 -o root -g root -T /[^ ]+ /opt/zen-browser/distribution/policies.json$" "$setup_log" ||
   fail "Zen browser installer copies policies.json without following a destination symlink"
 [[ -e $installed_dir/zen-browser ]] || fail "Zen browser installer marks zen-browser installed"
 pass "Zen browser installer restores the complete Omarchy setup"

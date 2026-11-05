@@ -35,7 +35,7 @@ desktop_value() {
 # gio launch returns before the entry it spawned has run, so poll for the argv the
 # stub records rather than reading the log once.
 launched_argument() {
-  local file="$1" attempt
+  local file="$1" line="${2:-1}" attempt
 
   : >"$OMARCHY_TEST_ARGV"
   gio launch "$file" >/dev/null 2>&1 || return 1
@@ -44,7 +44,7 @@ launched_argument() {
     sleep 0.01
   done
 
-  head -1 "$OMARCHY_TEST_ARGV"
+  sed -n "${line}p" "$OMARCHY_TEST_ARGV"
 }
 
 # The Exec quoting escapes a dollar sign with a backslash, and the file syntax has
@@ -55,7 +55,7 @@ dollar_file="$applications/Dollar App.desktop"
 
 [[ -f $dollar_file ]] || fail "web app install writes a desktop entry"
 
-[[ $(desktop_value "$dollar_file" Exec) == 'omarchy-launch-webapp "https://example.com/a\\$b"' ]] ||
+[[ $(desktop_value "$dollar_file" Exec) == 'omarchy-launch-webapp "https://example.com/a\\$b" "Dollar App"' ]] ||
   fail "Exec escapes the backslash its own quoting introduced" "$(desktop_value "$dollar_file" Exec)"
 pass "Exec escapes the backslash its own quoting introduced"
 
@@ -80,6 +80,18 @@ backslash_file="$applications/Back\slash App.desktop"
 [[ $(desktop_value "$backslash_file" Name) == 'Back\\slash App' ]] ||
   fail "a backslash in the app name is escaped" "$(desktop_value "$backslash_file" Name)"
 pass "a backslash in the app name is escaped"
+
+# The launcher takes the name as its second argument to match a firefoxpwa site,
+# so it must reach it unchanged whatever the name holds.
+[[ $(launched_argument "$backslash_file" 2) == 'Back\slash App' ]] ||
+  fail "a backslash in the app name reaches the launcher unchanged" "$(launched_argument "$backslash_file" 2)"
+pass "a backslash in the app name reaches the launcher unchanged"
+
+install_webapp 'Say "$HOME" App' 'https://example.com' someicon
+quoted_file="$applications/Say \"\$HOME\" App.desktop"
+[[ $(launched_argument "$quoted_file" 2) == 'Say "$HOME" App' ]] ||
+  fail "quotes and a dollar sign in the app name reach the launcher unchanged" "$(launched_argument "$quoted_file" 2)"
+pass "quotes and a dollar sign in the app name reach the launcher unchanged"
 
 # The property the escaping exists for: a newline in a value must not be able to
 # start a second key line.

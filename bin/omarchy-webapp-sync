@@ -1,0 +1,59 @@
+#!/bin/bash
+
+# omarchy:summary=Register the shipped web apps with firefoxpwa so they open in their own windows
+# omarchy:args=[--quiet]
+# omarchy:examples=omarchy webapp sync
+
+# Omarchy ships web apps as .desktop files that call omarchy-launch-webapp. Under
+# Chromium that is enough, because --app gives an app window. Firefox has no
+# equivalent, so each site also has to exist as a firefoxpwa web app. This walks
+# the shipped launchers and registers whatever is missing.
+#
+# Idempotent and safe to re-run: omarchy-webapp-register skips names it already
+# finds, and sites with no reachable manifest are left to open as tabs.
+
+set -uo pipefail
+
+quiet=0
+[[ ${1:-} == "--quiet" ]] && quiet=1
+
+say() { ((quiet)) || echo "$@"; }
+
+if ! omarchy-webapp-firefox-capable; then
+  say "Default browser is not Firefox-based; web apps use Chromium's --app instead."
+  exit 0
+fi
+
+registered=0
+present=0
+tabs=0
+
+installed_sites=$(firefoxpwa profile list 2>/dev/null)
+
+for desktop in "$OMARCHY_PATH"/applications/*.desktop; do
+  [[ -f $desktop ]] || continue
+
+  # Only the plain web app launchers. Entries with a custom handler
+  # (omarchy-webapp-handler-*) manage their own launching.
+  url=$(sed -n 's|^Exec=omarchy-launch-webapp \([^ ]*\).*|\1|p' "$desktop" | head -1)
+  [[ -n $url ]] || continue
+
+  name=$(sed -n 's/^Name=//p' "$desktop" | head -1)
+  [[ -n $name ]] || name=$(basename "$desktop" .desktop)
+
+  # Counted separately so the summary distinguishes work done from work skipped.
+  if grep -qiE "^- ${name//[^[:alnum:] ]/.}: " <<<"$installed_sites"; then
+    ((present++))
+    continue
+  fi
+
+  if omarchy-webapp-register "$name" "$url" 2>/dev/null; then
+    ((registered++))
+  else
+    # Either no reachable manifest, or one firefoxpwa refused to install.
+    say "  $name has no usable web app manifest; it will open as a tab"
+    ((tabs++))
+  fi
+done
+
+say "Web apps: $registered newly registered, $present already present, $tabs opening as tabs"

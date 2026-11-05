@@ -34,13 +34,15 @@ chmod -R go-w "$lifecycle"
 stub_bin=$tmp/bin
 omarchy_path=$tmp/omarchy
 mkdir -p "$stub_bin" "$omarchy_path/install/helpers" "$omarchy_path/config"
-printf 'browser_policy_setup_dir() { :; }\nbrowser_policy_setup_firefox_distribution() { :; }\nas_root() { "$@"; }\n' \
+printf 'browser_policy_setup_dir() { :; }\nbrowser_policy_setup_firefox_distribution() { :; }\nbrowser_policy_install_firefox_autoconfig() { :; }\nas_root() { "$@"; }\n' \
   >"$omarchy_path/install/helpers/browser-policy.sh"
 cp "$ROOT/config/chromium-flags.conf" "$omarchy_path/config/"
+mkdir -p "$omarchy_path/default"
+cp -r "$ROOT/default/firefox" "$omarchy_path/default/"
 for command in omarchy-pkg-add omarchy-pkg-aur-add omarchy-pkg-drop omarchy-install-gaming-gpu-lib32; do
   printf '#!/bin/bash\nprintf "%%s %%s\\n" "%s" "$*" >>"%s"\n' "$command" "$tmp/calls" >"$stub_bin/$command"
 done
-for command in omarchy-install-chromium-copy-url omarchy-install-chromium-ytdlp omarchy-theme-set-browser setsid; do
+for command in omarchy-install-chromium-copy-url omarchy-install-chromium-ytdlp omarchy-theme-set-browser setsid firefoxpwa; do
   printf '#!/bin/bash\nexit 0\n' >"$stub_bin/$command"
 done
 chmod +x "$stub_bin"/*
@@ -51,7 +53,7 @@ run() {
   rm -f "$tmp/calls" "$tmp/flags-at-hook"
   rm -rf "$tmp/home"
   mkdir -p "$tmp/home"
-  HOME="$tmp/home" OMARCHY_PATH="$omarchy_path" OMARCHY_OPT_PATH="$tmp/opt" \
+  HOME="$tmp/home" XDG_DATA_HOME="$tmp/home/.local/share" OMARCHY_PATH="$omarchy_path" OMARCHY_OPT_PATH="$tmp/opt" \
     OMARCHY_PROC_ROOT="$tmp/$platform/proc" OMARCHY_LIFECYCLE_ROOT="$lifecycle" \
     PATH="$stub_bin:$tmp/$platform/bin:$ROOT/bin:$PATH" bash "$@" >"$tmp/output" 2>&1
 }

@@ -176,20 +176,20 @@ grep -F "No default browser found" "$notify_log" >/dev/null ||
 pass "browser launcher fails visibly instead of handing uwsm-app an empty command"
 
 # A web app reaches the same empty command through its chromium.desktop
-# fallback when the default is not Chromium-based, so it needs its own guard
-# and message.
-cat >"$XDG_DATA_DIRS/applications/firefox.desktop" <<'EOF'
+# fallback when the default is neither Chromium-based nor Firefox, so it needs
+# its own guard and message.
+cat >"$XDG_DATA_DIRS/applications/org.gnome.Epiphany.desktop" <<'EOF'
 [Desktop Entry]
-Exec=firefox %u
+Exec=epiphany %U
 EOF
-cat >"$mock_bin/firefox" <<'SH'
+cat >"$mock_bin/epiphany" <<'SH'
 #!/bin/bash
 exit 0
 SH
-chmod +x "$mock_bin/firefox"
+chmod +x "$mock_bin/epiphany"
 cat >"$XDG_CONFIG_HOME/mimeapps.list" <<'EOF'
 [Default Applications]
-x-scheme-handler/http=firefox.desktop
+x-scheme-handler/http=org.gnome.Epiphany.desktop
 EOF
 rm -f "$notify_log" "$launch_log"
 status=0
@@ -202,3 +202,43 @@ HOME="$test_home" PATH="$mock_bin:$ROOT/bin:$PATH" OMARCHY_PATH="$ROOT" \
 grep -F "Web apps need a Chromium-based browser" "$notify_log" >/dev/null ||
   fail "web app launcher asks for a Chromium-based browser" "$(cat "$notify_log" 2>/dev/null)"
 pass "web app launcher fails visibly instead of handing uwsm-app an empty command"
+
+# With Firefox as the default there is no --app window to open: a web app goes
+# through the firefoxpwa site registered for it (by name, then by host) and
+# otherwise opens a normal tab.
+cat >"$XDG_DATA_DIRS/applications/firefox.desktop" <<'EOF'
+[Desktop Entry]
+Exec=firefox %u
+EOF
+cat >"$mock_bin/firefox" <<'SH'
+#!/bin/bash
+exit 0
+SH
+cat >"$mock_bin/firefoxpwa" <<'SH'
+#!/bin/bash
+[[ $1 == "profile" && $2 == "list" ]] && echo "- Known App: https://example.test/known (01ARZ3NDEKTSV4RRFFQ69G5FAV)"
+exit 0
+SH
+chmod +x "$mock_bin/firefox" "$mock_bin/firefoxpwa"
+cat >"$XDG_CONFIG_HOME/mimeapps.list" <<'EOF'
+[Default Applications]
+x-scheme-handler/http=firefox.desktop
+EOF
+
+launch_webapp() {
+  rm -f "$notify_log" "$launch_log"
+  HOME="$test_home" PATH="$mock_bin:$ROOT/bin:$PATH" OMARCHY_PATH="$ROOT" \
+    OMARCHY_TEST_BROWSER_LAUNCH="$launch_log" OMARCHY_TEST_BROWSER_NOTIFY="$notify_log" \
+    bash "$ROOT/bin/omarchy-launch-webapp" "$@" 2>/dev/null
+}
+
+launch_webapp "https://example.test/known" "Known App" || fail "a Firefox web app with a registered site launches"
+grep -F -- "firefoxpwa site launch 01ARZ3NDEKTSV4RRFFQ69G5FAV" "$launch_log" >/dev/null ||
+  fail "a Firefox web app launches its registered firefoxpwa site" "$(cat "$launch_log" 2>/dev/null)"
+pass "a Firefox web app launches its registered firefoxpwa site"
+
+launch_webapp "https://other.test/app" "Other App" || fail "a Firefox web app without a site launches"
+grep -F -- "firefox https://other.test/app" "$launch_log" >/dev/null ||
+  fail "a Firefox web app without a registered site opens a normal tab" "$(cat "$launch_log" 2>/dev/null)"
+[[ ! -e $notify_log ]] || fail "a Firefox web app without a registered site does not complain" "$(cat "$notify_log")"
+pass "a Firefox web app without a registered site opens a normal tab"

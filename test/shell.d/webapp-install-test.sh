@@ -27,7 +27,7 @@ fi
 desktop=$(desktop_for Example)
 [[ -f $desktop ]] || fail "webapp install writes a desktop file"
 grep -Fxq 'Name=Example' "$desktop" || fail "webapp install writes the app name"
-grep -Fxq 'Exec=omarchy-launch-webapp "https://example.com"' "$desktop" ||
+grep -Fxq 'Exec=omarchy-launch-webapp "https://example.com" "Example"' "$desktop" ||
   fail "webapp install launches the https URL" "$(cat "$desktop")"
 pass "webapp install writes an https desktop entry"
 
@@ -50,7 +50,7 @@ if install_webapp "Plain" "example.org/app" "webapp" >"$tmpdir/out" 2>"$tmpdir/e
 else
   fail "webapp install prefixes a schemeless URL with https" "$(cat "$tmpdir/err")"
 fi
-grep -Fxq 'Exec=omarchy-launch-webapp "https://example.org/app"' "$(desktop_for Plain)" ||
+grep -Fxq 'Exec=omarchy-launch-webapp "https://example.org/app" "Plain"' "$(desktop_for Plain)" ||
   fail "webapp install stores the prefixed https URL" "$(cat "$(desktop_for Plain)")"
 pass "webapp install prefixes a schemeless URL with https"
 
@@ -98,7 +98,7 @@ if install_webapp "Upper" "HTTPS://example.com" "webapp" >"$tmpdir/out" 2>"$tmpd
 else
   fail "webapp install accepts an uppercase scheme" "$(cat "$tmpdir/err")"
 fi
-grep -Fxq 'Exec=omarchy-launch-webapp "HTTPS://example.com"' "$(desktop_for Upper)" ||
+grep -Fxq 'Exec=omarchy-launch-webapp "HTTPS://example.com" "Upper"' "$(desktop_for Upper)" ||
   fail "webapp install keeps the uppercase scheme" "$(cat "$(desktop_for Upper)")"
 pass "webapp install accepts an uppercase http scheme"
 

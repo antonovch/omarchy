@@ -129,7 +129,7 @@ desktop_string_escape() {
 desktop_exec_arg() {
   # One Exec argument, double-quoted per the freedesktop Exec spec: inside quotes
   # " ` $ \ take a backslash and a literal % becomes %%. Only the default Exec's
-  # URL needs this; $CUSTOM_EXEC stays a whole command line (file-syntax only).
+  # URL and app name need this; $CUSTOM_EXEC stays a whole command line (file-syntax only).
   local escaped
   escaped=$(printf '%s' "$1" \
     | sed -e 's/\\/\\\\/g' -e 's/"/\\"/g' -e 's/`/\\`/g' -e 's/\$/\\$/g' -e 's/%/%%/g')
@@ -199,13 +199,22 @@ else
   ICON_VALUE=$(icon_name_from_ref "$ICON_REF")
 fi
 
-# Default Exec quotes the URL as one Exec-spec argument; the whole line then gets
+# Chromium gets an app window from --app, but Firefox needs the site registered
+# with firefoxpwa first, or omarchy-launch-webapp can only open a normal tab.
+# Non-fatal: plenty of sites ship no reachable manifest, and a tab still works.
+if [[ -z $CUSTOM_EXEC ]] && omarchy-webapp-firefox-capable; then
+  omarchy-webapp-register "$APP_NAME" "$APP_URL" "${MANIFEST_URL:-}" ||
+    echo "Note: no web app manifest found for $APP_URL; it will open as a tab."
+fi
+
+# Default Exec quotes the URL and the app name (which lets omarchy-launch-webapp
+# match a firefoxpwa site exactly) as Exec-spec arguments; the whole line then gets
 # the file-syntax escaping below (unescaped first at read time per spec, so the
 # layers compose). $CUSTOM_EXEC is a full command line, so it gets file-syntax only.
 if [[ -n $CUSTOM_EXEC ]]; then
   EXEC_COMMAND=$CUSTOM_EXEC
 else
-  EXEC_COMMAND="omarchy-launch-webapp $(desktop_exec_arg "$APP_URL")"
+  EXEC_COMMAND="omarchy-launch-webapp $(desktop_exec_arg "$APP_URL") $(desktop_exec_arg "$APP_NAME")"
 fi
 
 # Create application .desktop file
