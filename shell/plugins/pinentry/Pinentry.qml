@@ -75,7 +75,7 @@ Item {
     root.finish(null)
   }
 
-  IpcHandler {
+  ShellIpc {
     target: "pinentry"
 
     function show(payloadJson: string): string {
@@ -179,7 +179,8 @@ Item {
               anchors.left: parent.left
               anchors.right: parent.right
               anchors.verticalCenter: parent.verticalCenter
-              text: "Enter password"
+              textFormat: Text.PlainText
+              text: I18n.t("polkit.enterPassword")
               color: root.foreground
               opacity: 0.36
               font.family: root.fontFamily
@@ -222,6 +223,7 @@ Item {
         anchors.fill: parent
         anchors.leftMargin: Style.space(12)
         anchors.rightMargin: Style.space(12)
+        textFormat: Text.PlainText
         text: root.currentMessage
         color: root.foreground
         font.family: root.fontFamily
