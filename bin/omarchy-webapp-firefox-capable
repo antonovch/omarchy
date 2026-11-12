@@ -8,7 +8,9 @@
 
 omarchy-cmd-missing firefoxpwa && exit 1
 
-case "$(xdg-settings get default-web-browser 2>/dev/null)" in
+# xdg-settings answers omarchy-browser.desktop inside the session, the entry that
+# routes links back to the launcher, so ask the resolver for the real browser.
+case "$(omarchy-cmd-default-browser 2>/dev/null)" in
   firefox* | zen*) exit 0 ;;
   *) exit 1 ;;
 esac

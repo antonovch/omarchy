@@ -242,3 +242,19 @@ grep -F -- "firefox https://other.test/app" "$launch_log" >/dev/null ||
   fail "a Firefox web app without a registered site opens a normal tab" "$(cat "$launch_log" 2>/dev/null)"
 [[ ! -e $notify_log ]] || fail "a Firefox web app without a registered site does not complain" "$(cat "$notify_log")"
 pass "a Firefox web app without a registered site opens a normal tab"
+
+# In the desktop session xdg-settings answers with the routing entry
+# (omarchy-browser.desktop), never the browser itself, so the capability check has
+# to ask the resolver or it never sees Firefox and web apps skip registration.
+cat >"$mock_bin/xdg-settings" <<'SH'
+#!/bin/bash
+echo omarchy-browser.desktop
+SH
+cat >"$XDG_CONFIG_HOME/mimeapps.list" <<'EOF2'
+[Default Applications]
+x-scheme-handler/http=omarchy-browser.desktop;firefox.desktop
+EOF2
+HOME="$test_home" PATH="$mock_bin:$ROOT/bin:$PATH" OMARCHY_PATH="$ROOT" \
+  bash "$ROOT/bin/omarchy-webapp-firefox-capable" ||
+  fail "web apps register with firefoxpwa when the session's xdg-settings names the routing entry"
+pass "web apps register with firefoxpwa when the session's xdg-settings names the routing entry"
