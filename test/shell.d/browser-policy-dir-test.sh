@@ -329,3 +329,10 @@ printf 'not json\n' >"$fx_merge/policies.json"
 browser_policy_firefox_skip_default_check "$fx_merge"
 [[ $(<"$fx_merge/policies.json") == "not json" ]] || fail "an unreadable Firefox policies.json is left alone"
 pass "Firefox's default browser check is merged into existing policies"
+
+# Firefox drops the whole ExtensionSettings policy for an installation_mode it
+# doesn't know, so none of the add-ons it names (the themes, firefoxpwa) install.
+filter='[.policies.ExtensionSettings[]?.installation_mode] | unique | map(select(IN("allowed", "blocked", "force_installed", "normal_installed") | not)) | join(", ")'
+invalid_modes=$(jq -r "$filter" "$ROOT/default/firefox/policies.json")
+[[ -z $invalid_modes ]] || fail "the Firefox policy only uses installation modes Firefox accepts" "got: $invalid_modes"
+pass "the Firefox policy only uses installation modes Firefox accepts"
