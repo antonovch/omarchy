@@ -86,10 +86,12 @@ That is the opposite of the pre-4.0 arrangement, where the checkout at
 ### Fresh install
 
 1. **Install stock Omarchy from the ISO.** Reboot. Don't customize anything yet.
-2. **Clone this fork** and check out the branch tracking the current release:
+2. **Clone this fork** on the branch for the current release, `quattro-v4.5.0`.
+   Name it: the remote's default branch is `master`, and `quattro` is the old
+   4.0.6 line, so a plain clone gets neither:
 
    ```bash
-   git clone git@github.com:antonovch/omarchy ~/Projects/omarchy
+   git clone -b quattro-v4.5.0 git@github.com:antonovch/omarchy ~/Projects/omarchy
    ```
 
 3. **Point Omarchy at it**, then reboot so the shell, session, systemd and
@@ -120,17 +122,23 @@ That is the opposite of the pre-4.0 arrangement, where the checkout at
 
    ```bash
    for f in hypr/bindings.lua hypr/hyprland.lua hypr/input.lua hypr/looknfeel.lua \
-            keepmenu/config.ini btop/btop.conf Code/User/keybindings.json \
+            hypr/workspaces.lua keepmenu/config.ini btop/btop.conf \
+            Code/User/keybindings.json \
             omarchy/extensions/omarchy-menu.jsonc \
             omarchy/hooks/post-update.d/restore-branding; do
      omarchy-refresh-config "$f"
    done
    ```
 
+   `hypr/workspaces.lua` is required by `hypr/hyprland.lua`. Without it the
+   Hyprland config stops loading at that line, and everything after it
+   (`looknfeel.lua`, autostart, the toggles) silently never applies, with
+   nothing in `hyprctl configerrors`.
+
    Check what still differs at any time with:
 
    ```bash
-   for f in $(git diff v4.0.1 --name-only -- config/ | sed 's|^config/||'); do
+   for f in $(git diff v4.5.0 --name-only -- config/ | sed 's|^config/||'); do
      diff -q "config/$f" "$HOME/.config/$f" >/dev/null 2>&1 || echo "$f differs"
    done
    ```
@@ -144,7 +152,7 @@ That is the opposite of the pre-4.0 arrangement, where the checkout at
    omarchy-branding-about reset
    ```
 
-   Kept across upgrades by `NoUpgrade` in `default/pacman/pacman.conf` plus the
+   Kept across upgrades by `NoUpgrade` in `default/pacman/pacman-*.conf` (one per channel) plus the
    `post-update.d/restore-branding` hook installed in step 5.
 
 7. **Machine-specific leftovers**, which nothing in the repo can do for you:
@@ -153,6 +161,16 @@ That is the opposite of the pre-4.0 arrangement, where the checkout at
      Restore from a backup or re-tune.
    - `~/.config/keepmenu/config.ini` — set `database_1`; refreshing that file in
      step 5 clobbers it, since the repo copy has to stay generic.
+
+### Workspaces
+
+Omarchy 4.5 gives every monitor workspaces 1-10 of its own and folds an unplugged
+monitor's workspaces into the laptop's block, which reorders apps when you dock
+and undock. This fork keeps the pre-4.5 global numbering instead:
+`config/hypr/workspaces.lua` stops the per-monitor logic and rebinds the number
+keys, `Super + Tab` and `Super + Shift + Alt + Arrow` to plain workspaces. Set
+`global_workspaces = false` at the top of `~/.config/hypr/workspaces.lua` for the
+4.5 behavior.
 
 ### Upgrading an existing pre-4.0 machine
 
@@ -190,55 +208,86 @@ up whatever was pushed from the first. Nothing else is needed day to day.
 Separate and occasional. Do it on one machine, push, and let the other machine
 take it through its next `omarchy update`.
 
-Note the naming: the local branch is `quattro`, but the fork sits on upstream's
-**release** line (the `v4.0.x` tags), *not* on `upstream/quattro`, which is
-upstream's development branch. The two diverged after `v4.0.0`.
+The fork sits on upstream's **release** line (the `vX.Y.Z` tags), *not* on
+`upstream/quattro`, which is upstream's development branch. The branch is named for
+the release it carries (`quattro-v4.5.0`).
+
+**A patch release in the same line (4.5.0 to 4.5.1)**: merge the tag. It descends
+from the one already merged, so the merge is small, and nothing is rewritten:
 
 ```bash
 git fetch upstream --tags
-git rebase --onto v4.0.2 v4.0.1 quattro
-git log --oneline v4.0.2..HEAD        # must show ONLY local commits
+git merge v4.5.1 --no-edit
 ./test/cli
-omarchy update                        # exercise it before pushing
-git push --force-with-lease
+git push
 ```
 
-The `git log` check is not optional. Rebasing from one line onto another silently
-carries along any upstream commit that was in the old base and is absent from the
-new one — moving from `upstream/quattro` onto a release tag once dragged in eight.
+**A jump across lines (4.0 to 4.5)**: a merge conflicts across hundreds of files.
+Replay the fork's own commits onto the new tag instead, in a separate worktree so
+the checkout `$OMARCHY_PATH` points at stays usable:
 
-`--force-with-lease` is required because the rebase rewrote history.
-
-### After a rebase, on every other machine
-
-The force-push leaves the other machine's checkout on the old history, and
-`omarchy-update-dev` only ever runs `git pull --ff-only`. That fails:
-
+```bash
+git fetch upstream --tags
+git worktree add ../omarchy-next -b quattro-vX.Y.Z
+cd ../omarchy-next
+git rev-list --no-merges --topo-order --reverse quattro-v4.5.0 \
+  --not --remotes=upstream --tags='v*' > /tmp/own-commits
+git reset --hard vX.Y.Z
+git cherry-pick $(cat /tmp/own-commits)   # resolve each conflict, then --continue
 ```
-fatal: Not possible to fast-forward, aborting.
+
+The rev-list is the fork's own commits: those reachable from no upstream ref or
+tag. A plain `git rebase` would also carry along the upstream release-branch
+commits that earlier tag merges brought in. When a conflict comes up:
+
+- Personal config (`config/hypr/*.lua`): the fork's version wins.
+- Shared code: take upstream's, then re-apply only what the fork adds.
+- A commit that can't be ported cheaply: leave it out and note it.
+- A feature spread over many commits (Firefox): squash it into one commit, so the
+  next sync conflicts once and not once per step.
+
+Then check, in this order:
+
+```bash
+git log --oneline vX.Y.Z..HEAD   # must show ONLY local commits
+./test/cli
+./test/shell
 ```
 
-`bin/omarchy-update` runs under `set -e`, so this aborts the **whole** update
-before keyring, packages and migrations. Resync first:
+Run the failing shell tests once on a pristine `vX.Y.Z` worktree: whatever fails
+there too is the host, not the port.
+
+Push it as a **new branch**, not over the old one:
+
+```bash
+git push -u origin quattro-vX.Y.Z
+```
+
+On each machine, switch the checkout and update:
 
 ```bash
 git -C ~/Projects/omarchy fetch origin
-git -C ~/Projects/omarchy reset --hard origin/quattro
+git -C ~/Projects/omarchy checkout quattro-vX.Y.Z
 omarchy update
 ```
 
-`reset --hard` is safe here only because all work happens on the machine the
-rebase is done on; a second machine's checkout should carry no local commits.
+A new branch means no force-push, the old branch stays as a way back, and
+`omarchy-update-dev`'s `git pull --ff-only` keeps working, because the new branch
+tracks its own remote. Overwriting a published branch breaks that pull on every
+other machine (`fatal: Not possible to fast-forward`), and since `omarchy update`
+runs under `set -e` it aborts the **whole** update before keyring, packages and
+migrations.
 
 ### Do not let the fork lag a release
 
 `omarchy-migrate` reads `$OMARCHY_PATH/migrations`, and under `omarchy-dev-link`
-that is this checkout — not the package. The same goes for `bin/`, `shell/` and
+that is this checkout, not the package. The same goes for `bin/`, `shell/` and
 `themes/`.
 
-So when 4.0.2 lands, `omarchy update` upgrades the *packages* to 4.0.2 while this
-checkout keeps serving 4.0.1 code, including 4.0.1's migration set: 4.0.2's new
-migrations never run. Rebase promptly rather than deferring it.
+So when 4.5.1 lands, `omarchy update` upgrades the *packages* to 4.5.1 while this
+checkout keeps serving 4.5.0 code, including 4.5.0's migration set: 4.5.1's new
+migrations never run. Move the fork onto each release promptly rather than
+deferring it.
 
 ## License
 
