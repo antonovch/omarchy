@@ -71,6 +71,15 @@ setup_firefox_runtime_preferences() {
   render_firefox_policies >"$runtime_dir/distribution/policies.json"
   cp -f "$OMARCHY_PATH/default/firefox/firefox.cfg" "$runtime_dir/firefox.cfg"
   cp -f "$OMARCHY_PATH/default/firefox/autoconfig.js" "$runtime_dir/defaults/pref/autoconfig.js"
+
+  # The widevine package enables its CDM for the system Firefox through default
+  # prefs in that install. The runtime is a separate install, so without them
+  # DRM sites such as Spotify can't play. Link rather than copy, to follow the
+  # package's CDM version.
+  local widevine_prefs=/usr/lib/firefox/browser/defaults/preferences/widevine.js
+  if [[ -f $widevine_prefs ]]; then
+    ln -sfn "$widevine_prefs" "$runtime_dir/defaults/pref/widevine.js"
+  fi
 }
 
 # The firefoxpwa runtime is a second, private Firefox that policies in
