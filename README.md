@@ -123,7 +123,7 @@ That is the opposite of the pre-4.0 arrangement, where the checkout at
    ```bash
    for f in hypr/bindings.lua hypr/hyprland.lua hypr/input.lua hypr/looknfeel.lua \
             hypr/workspaces.lua keepmenu/config.ini btop/btop.conf \
-            Code/User/keybindings.json \
+            udiskie/config.yml Code/User/keybindings.json \
             omarchy/extensions/omarchy-menu.jsonc \
             omarchy/hooks/post-update.d/restore-branding; do
      omarchy-refresh-config "$f"
