@@ -146,6 +146,10 @@
       "{3308ea09-5238-48ae-9bb7-1c8fb35dff1d}": {
         "installation_mode": "normal_installed",
         "install_url": "https://addons.mozilla.org/firefox/downloads/file/4659889/dark_matte_texture-2.0.xpi"
+      },
+      "{c947252b-e523-46e1-bbb3-feada247b5d2}": {
+        "installation_mode": "normal_installed",
+        "install_url": "https://addons.mozilla.org/firefox/downloads/file/3464069/atom_orange_better_contrast-3.0.xpi"
       }
     }
   }
